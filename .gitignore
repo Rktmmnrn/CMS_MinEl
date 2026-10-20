@@ -62,7 +62,8 @@ cms_front/yarn-error.log*
 cms_front/.pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
 
 # vercel
 cms_front/.vercel
