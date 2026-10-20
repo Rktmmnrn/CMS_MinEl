@@ -1,2 +1,6 @@
 line-length = 100
 extend-exclude = ["*/migrations/*"]
+
+[lint]
+# regle par defaut de ruff + tri des imports
+select = ["E4", "E7", "E9", "F", "I"]

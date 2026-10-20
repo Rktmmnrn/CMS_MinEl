@@ -1,4 +1,4 @@
-from django.db import connection
+from django.db import DatabaseError, connection
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,6 +36,6 @@ class HealthView(APIView):
     def get(self, request):
         try:
             connection.ensure_connection()
-        except Exception:
+        except DatabaseError:
             return Response({"status": "error", "database": "down"}, status=503)
         return Response({"status": "ok", "database": "up"})
