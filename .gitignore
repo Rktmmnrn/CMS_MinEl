@@ -1,0 +1,71 @@
+# Django
+back/db.*
+back/mediafiles/**/*
+back/staticfiles/
+back/*.sqlite3
+*.log
+
+# python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# test
+cookies.txt
+
+# ================================
+
+# frontend
+
+# dependencies
+cms_front/node_modules
+cms_front/.pnp
+cms_front/.pnp.*
+cms_front/.yarn/*
+cms_front!.yarn/patches
+cms_front/!.yarn/plugins
+cms_front/!.yarn/releases
+cms_front/!.yarn/versions
+
+# testing
+cms_front/coverage
+
+# next.js
+cms_front/.next/
+cms_front/out/
+
+# production
+cms_front/build
+
+# misc
+cms_front/.DS_Store
+cms_front/*.pem
+
+# debug
+cms_front/npm-debug.log*
+cms_front/yarn-debug.log*
+cms_front/yarn-error.log*
+cms_front/.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+cms_front/.vercel
+
+# typescript
+cms_front/*.tsbuildinfo
+cms_front/next-env.d.ts
+.env.*
