@@ -70,4 +70,3 @@ cms_front/.vercel
 # typescript
 cms_front/*.tsbuildinfo
 cms_front/next-env.d.ts
-.env.*
