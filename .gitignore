@@ -25,9 +25,11 @@ htmlcov/
 # test
 cookies.txt
 
+
 # ================================
 
-# frontend
+
+# Next
 
 # dependencies
 cms_front/node_modules
