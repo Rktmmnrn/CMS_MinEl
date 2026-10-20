@@ -59,7 +59,17 @@ MIDDLEWARE = [
 
 AUTH_USER_MODEL = 'accounts.User'
 
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3000"
+).split(",")
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") # pour que Django reconnaisse le protocole HTTPS derrière un proxy inverse
 
 CORS_ALLOW_CREDENTIALS = True # envoie du cookie d'authentification avec les requêtes cross-origin
 
