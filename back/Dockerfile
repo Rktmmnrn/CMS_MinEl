@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Les dépendances d'abord
+# Dépendances
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -13,7 +13,7 @@ COPY . .
 
 # Utilisateur non-root + dossiers inscriptibles pour les volumes
 RUN chmod +x entrypoint.sh \
-    && adduser --disabled-password --no-create-home appuser \
+    && adduser --disabled-password --gecos "" appuser \
     && mkdir -p /app/staticfiles /app/mediafiles \
     && chown -R appuser /app/staticfiles /app/mediafiles
 USER appuser
