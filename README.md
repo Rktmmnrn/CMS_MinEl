@@ -21,6 +21,7 @@ CMS_project/
 ├── .env / .env.example         # variables d'environnement
 ├── docker-compose.yml          # PostgreSQL, backend, frontend, Nginx
 ├── back/
+│   ├── Dockerfile, entrypoint.sh, .dockerignore
 │   ├── cms_back/               # configuration Django (settings, urls)
 │   ├── accounts/               # Role, User, authentification JWT, utilisateurs
 │   ├── content/                # Article, Page, Category, Tag
@@ -28,6 +29,7 @@ CMS_project/
 │   ├── dashboard/              # tableau de bord et health check
 │   ├── manage.py
 │   └── requirements.txt
+├── nginx/default.conf          # reverse proxy (fichiers statiques, médias, API)
 └── cms_front/                  # frontend Next.js
 ```
 
@@ -57,6 +59,23 @@ python manage.py runserver
 ```
 
 API : http://localhost:8000/api/v1/ — Admin Django : http://localhost:8000/admin/
+
+## Lancer toute la pile avec Docker
+
+```bash
+docker compose up -d --build
+```
+
+| Service | Rôle | Accès |
+|---|---|---|
+| `db` | PostgreSQL 16 | `localhost:5432` (dev uniquement) |
+| `backend` | Django + gunicorn | interne, via Nginx |
+| `nginx` | Reverse proxy, fichiers statiques et médias | http://localhost:8080 |
+
+- Au démarrage, le backend applique les migrations et collecte les fichiers statiques.
+- Premier administrateur : `docker compose exec backend python manage.py createsuperuser`
+- Health check : http://localhost:8080/api/v1/health/
+- Réinitialiser la base : `docker compose down -v` (supprime les volumes).
 
 ### Variables d'environnement (`.env`)
 
@@ -91,6 +110,7 @@ Le rôle est vérifié en base à chaque requête (le jeton ne sert qu'à l'affi
 - Le refresh token est dans un cookie `httpOnly` (+ `Secure` en production), jamais dans le corps JSON.
 - Rotation du refresh à chaque renouvellement, liste noire à la déconnexion.
 - Limitation du login : 5 tentatives par minute. Message d'erreur identique pour un email inconnu et un mauvais mot de passe.
+- Derrière Nginx, NUM_PROXIES = 1 permet à DRF de limiter les tentatives par IP réelle.
 
 ## API REST (préfixe `/api/v1/`)
 
@@ -138,7 +158,8 @@ Pipeline GitHub Actions (`.github/workflows/ci.yml`), déclenché sur chaque pus
 4. Vérification des migrations
 5. Tests (`pytest`)
 
-Étapes prévues ensuite : tests frontend, build et publication des images Docker (GitHub Container Registry), déploiement SSH (`docker compose pull` puis `up -d`) et vérification de `/api/v1/health/`.
+Étapes réalisées : tests backend (ruff, migrations, pytest). Étapes prévues : build et publication
+de l'image Docker (GHCR), déploiement SSH, vérification de `/api/v1/health/`, tests frontend.
 
 ## Conventions
 

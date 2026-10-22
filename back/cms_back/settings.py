@@ -39,12 +39,13 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_filters',
     'accounts',
     'media',
     'content',
+    'dashboard',
 ]
 
-# MIDDLEWARE.insert(0, "corsheaders.middleware.CorsMiddleware")
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -87,7 +88,13 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
+    "NUM_PROXIES": 1,  # pour que DRF récupère l'IP du client derrière un proxy inverse
 }
+
+if not DEBUG: # desactiver la page navigable de l'API en production
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = [
+        "rest_framework.renderers.JSONRenderer",
+    ]
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
