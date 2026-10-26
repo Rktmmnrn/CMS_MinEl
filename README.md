@@ -30,7 +30,39 @@ CMS_project/
 │   ├── manage.py
 │   └── requirements.txt
 ├── nginx/default.conf          # reverse proxy (fichiers statiques, médias, API)
-└── cms_front/                  # frontend Next.js
+└── cms_front/
+    ├── app/
+    │   ├── layout.tsx                  # racine : police, lang="fr", providers
+    │   ├── not-found.tsx               # 404
+    │   ├── (public)/                   # site public (rendu serveur)
+    │   │   ├── layout.tsx              # en-tête (menu des pages), pied de page
+    │   │   ├── page.tsx                # accueil
+    │   │   ├── articles/page.tsx       # liste + recherche + filtres
+    │   │   ├── articles/[slug]/page.tsx
+    │   │   └── [slug]/page.tsx         # page statique
+    │   ├── login/page.tsx
+    │   └── admin/                      # espace éditeur/admin (côté client)
+    │       ├── layout.tsx              # garde d'authentification + menu latéral
+    │       ├── page.tsx                # tableau de bord
+    │       ├── articles/(page, nouveau, [slug])
+    │       ├── pages/(page, nouvelle, [slug])
+    │       ├── categories/page.tsx
+    │       ├── tags/page.tsx
+    │       ├── medias/page.tsx
+    │       ├── utilisateurs/page.tsx
+    │       └── profil/page.tsx
+    ├── components/
+    │   ├── ui/                         # shadcn (Button, Dialog, Table, Badge...)
+    │   ├── admin/                      # Sidebar, StatusBadge, RichTextEditor, MediaPicker...
+    │   └── public/                     # Header, ArticleCard, Pagination...
+    ├── lib/
+    │   ├── api/client.ts               # apiFetch : Bearer, 401 → refresh → rejeu une fois
+    │   ├── api/*.ts                    # fonctions par ressource (articles, pages, media...)
+    │   ├── auth/AuthProvider.tsx       # access token en mémoire, rôle, login/logout
+    │   ├── hooks/                      # hooks TanStack Query (useArticles, ...)
+    │   ├── schemas/                    # schémas Zod des formulaires
+    │   └── i18n/errors.ts              # traduction des messages d'erreur API
+    └── types/api.ts                    # types Article, Page, Media, User...
 ```
 
 ## Démarrage en local (backend)
