@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
-// URL du backend Django en développement
-const backend = process.env.BACKEND_URL ?? "http://localhost:8000";
+const backend = process.env.BACKEND_URL ?? "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -9,7 +8,7 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   async rewrites() {
     return [
-      { source: "/api/:path*", destination: `${backend}/api/:path*` },
+      { source: "/api/:path*", destination: `${backend}/api/:path*/` },
       { source: "/admin/:path*", destination: `${backend}/admin/:path*` },
       { source: "/static/:path*", destination: `${backend}/static/:path*` },
       { source: "/mediafiles/:path*", destination: `${backend}/mediafiles/:path*` },

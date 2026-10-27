@@ -23,9 +23,19 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
+        <html
+            lang="fr"
+            suppressHydrationWarning
+            className={`${inter.variable}
+            ${jakarta.variable}`}
+        >
             <body className="min-h-screen antialiased">
-                <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    enableSystem
+                    disableTransitionOnChange
+                >
                     {children}
                 </ThemeProvider>
             </body>
