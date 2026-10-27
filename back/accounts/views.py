@@ -13,6 +13,7 @@ from .permissions import IsAdmin
 from .serializers import (
     CMSTokenObtainPairSerializer,
     PasswordChangeSerializer,
+    ProfileUpdateSerializer,
     UserAdminSerializer,
     UserSerializer,
 )
@@ -81,6 +82,12 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(UserSerializer(request.user).data)
 
 

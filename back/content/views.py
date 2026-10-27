@@ -94,7 +94,7 @@ class PageViewSet(ContentViewSet):
     serializer_class = PageSerializer
     staff_order = "position"
     public_order = "position"
-    filterset_fields = ["show_in_menu"]
+    filterset_fields = ["show_in_menu", "status"]
     search_fields = ["title", "body"]
 
 

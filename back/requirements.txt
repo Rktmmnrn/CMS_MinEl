@@ -19,3 +19,4 @@ pytest-django==4.14.0
 python-dotenv==1.2.4
 ruff==0.17.1
 sqlparse==0.6.0
+nh3==0.3.7

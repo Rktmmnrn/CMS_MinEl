@@ -4,6 +4,7 @@ from media.models import Media
 from media.serializers import MediaSerializer
 
 from .models import Article, Category, Page, Tag
+from .sanitize import clean_html
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -36,6 +37,9 @@ class ArticleSerializer(serializers.ModelSerializer):
         source="tags", queryset=Tag.objects.all(),
         many=True, write_only=True, required=False)
 
+    def validate_body(self, value):
+        return clean_html(value)
+
     class Meta:
         model = Article
         fields = ["id", "title", "slug", "body", "excerpt", "status", "author",
@@ -47,6 +51,9 @@ class ArticleSerializer(serializers.ModelSerializer):
 
 class PageSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source="author.username", read_only=True)
+
+    def validate_body(self, value):
+        return clean_html(value)
 
     class Meta:
         model = Page

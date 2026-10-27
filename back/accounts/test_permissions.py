@@ -14,4 +14,10 @@ def test_dashboard_users_count_admin_only(admin_client, editor_client):
 def test_health_is_public(api, db):
     r = api.get("/api/v1/health/")
     assert r.status_code == 200 and r.data["database"] == "up"
-    
+
+
+def test_patch_me_updates_names_only(editor_client):
+    r = editor_client.patch(
+        "/api/v1/auth/me/", {"first_name": "Ana", "role": "ADMIN"}, format="json")
+    assert r.status_code == 200
+    assert r.data["first_name"] == "Ana" and r.data["role"] == "EDITOR"

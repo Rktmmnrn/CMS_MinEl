@@ -41,3 +41,16 @@ def test_status_cannot_be_forced_by_patch(editor_client):
     editor_client.post(ARTICLES, {"title": "T", "body": "x"}, format="json")
     editor_client.patch(ARTICLES + "t/", {"status": "PUBLISHED"}, format="json")
     assert Article.objects.get(slug="t").status == "DRAFT"
+
+
+def test_body_is_sanitized(editor_client):
+    r = editor_client.post(
+        ARTICLES, {"title": "XSS", "body": "<p>ok</p><script>alert(1)</script>"}, format="json")
+    assert r.status_code == 201
+    assert r.data["body"] == "<p>ok</p>"
+
+
+def test_pages_status_filter(editor_client):
+    editor_client.post("/api/v1/pages/", {"title": "A", "body": "x"}, format="json")
+    assert editor_client.get("/api/v1/pages/?status=PUBLISHED").data["count"] == 0
+    assert editor_client.get("/api/v1/pages/?status=DRAFT").data["count"] == 1
