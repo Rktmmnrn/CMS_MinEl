@@ -1,19 +1,19 @@
 import type { NextConfig } from "next";
 
+// URL du backend Django en développement
+const backend = process.env.BACKEND_URL ?? "http://localhost:8000";
+
 const nextConfig: NextConfig = {
-  /* config options here */
-  experimental: {
-    agentFeedback: true,
-  },
-  cacheComponents: true,
-  partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
+  output: "standalone",
+
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    return [
+      { source: "/api/:path*", destination: `${backend}/api/:path*` },
+      { source: "/admin/:path*", destination: `${backend}/admin/:path*` },
+      { source: "/static/:path*", destination: `${backend}/static/:path*` },
+      { source: "/mediafiles/:path*", destination: `${backend}/mediafiles/:path*` },
+    ];
   },
 };
 
