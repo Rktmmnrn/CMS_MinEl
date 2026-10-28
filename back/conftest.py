@@ -1,4 +1,5 @@
 import pytest
+from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from accounts.models import Role, User
@@ -36,3 +37,8 @@ def editor_client(editor_user):
     client = APIClient()
     client.force_authenticate(editor_user)
     return client
+
+
+@pytest.fixture(autouse=True)
+def clear_cache(db):
+    cache.clear()

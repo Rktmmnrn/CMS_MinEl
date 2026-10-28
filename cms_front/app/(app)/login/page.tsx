@@ -13,12 +13,14 @@ export default function LoginPage() {
         <main className="flex min-h-screen items-center justify-center px-4 py-10">
             <div className="w-full max-w-md space-y-6">
                 <div className="flex flex-col items-center gap-3 text-center">
-                    <Image
-                        src={logo}
-                        alt="Logo du Ministère de l’Élevage"
-                        priority
-                        className="h-28 w-auto"
-                    />
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                        <Image
+                            src={logo}
+                            alt="Logo du MinEl"
+                            priority
+                            className="h-24 w-auto"
+                        />
+                    </div>
                     <h1 className="font-heading text-2xl font-bold text-forest dark:text-foreground">
                         Espace de gestion
                     </h1>

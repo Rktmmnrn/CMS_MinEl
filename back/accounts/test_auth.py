@@ -1,4 +1,3 @@
-
 LOGIN = "/api/v1/auth/login/"
 CREDS = {"email": "editor@test.org", "password": "Str0ng-Passw0rd!"}
 
@@ -30,3 +29,9 @@ def test_refresh_then_logout_blacklists(api, editor_user):
     assert api.post("/api/v1/auth/logout/").status_code == 204
     api.credentials()
     assert api.post("/api/v1/auth/refresh/").status_code == 401
+
+
+def test_login_is_throttled_after_5_attempts(api, editor_user):
+    bad = {**CREDS, "password": "faux"}
+    codes = [api.post(LOGIN, bad, format="json").status_code for _ in range(6)]
+    assert codes == [401, 401, 401, 401, 401, 429]
