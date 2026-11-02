@@ -9,7 +9,6 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useDashboard } from "@/lib/hooks/use-dashboard";
 import { getErrorMessage } from "@/lib/api/client";
-import { cn } from "@/lib/utils";
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
     dateStyle: "medium",
