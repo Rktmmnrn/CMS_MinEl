@@ -1,3 +1,4 @@
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from media.models import Media
@@ -5,6 +6,7 @@ from media.serializers import MediaSerializer
 
 from .models import Article, Category, Page, Tag
 from .sanitize import clean_html
+from .utils import RESERVED_PAGE_SLUGS
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -60,3 +62,9 @@ class PageSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "slug", "body", "status", "show_in_menu",
                   "position", "author", "created_at", "updated_at", "published_at"]
         read_only_fields = ["slug", "status", "published_at"]
+
+    def validate_title(self, value):
+        if not self.instance and slugify(value) in RESERVED_PAGE_SLUGS:
+            raise serializers.ValidationError(
+                "Ce titre est réservé : choisissez-en un autre.")
+        return value

@@ -54,3 +54,17 @@ def test_pages_status_filter(editor_client):
     editor_client.post("/api/v1/pages/", {"title": "A", "body": "x"}, format="json")
     assert editor_client.get("/api/v1/pages/?status=PUBLISHED").data["count"] == 0
     assert editor_client.get("/api/v1/pages/?status=DRAFT").data["count"] == 1
+
+
+def test_reserved_page_slug_refused(editor_client):
+    r = editor_client.post(
+        "/api/v1/pages/", {"title": "Dashboard", "body": "<p>x</p>"}, format="json")
+    assert r.status_code == 400 and "title" in r.data
+    r = editor_client.post(
+        "/api/v1/pages/", {"title": "Dashboard 2", "body": "<p>x</p>"}, format="json")
+    assert r.status_code == 201
+
+
+def test_reserved_word_allowed_for_articles(editor_client):
+    r = editor_client.post(ARTICLES, {"title": "Login", "body": "<p>x</p>"}, format="json")
+    assert r.status_code == 201 and r.data["slug"] == "login"
