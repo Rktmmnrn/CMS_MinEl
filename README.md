@@ -32,6 +32,7 @@ CMS_project/
 ├── nginx/default.conf          # reverse proxy (fichiers statiques, médias, API)
 └── cms_front/
     ├── app/
+    │   ├── page.tsx
     │   ├── layout.tsx                  # racine : police, lang="fr", providers
     │   ├── not-found.tsx               # 404
     │   ├── (public)/                   # site public (rendu serveur)
