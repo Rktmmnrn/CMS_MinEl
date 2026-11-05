@@ -21,10 +21,13 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ApiError, getErrorMessage } from "@/lib/api/client";
-import { taxonomySchema, type TaxonomyValues } from "@/lib/schemas/taxonomy";
+import { categorySchema, type TaxonomyValues } from "@/lib/schemas/taxonomy";
+import { frenchFieldError } from "@/lib/i18n/errors";
+
+shema: typeof categorySchema;
 
 export interface TaxonomyItem {
-    id: number;
+    id: string;
     name: string;
     slug: string;
     description?: string;

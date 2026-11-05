@@ -9,7 +9,7 @@ export const mediaApi = {
         form.append("alt_text", altText);
         return apiFetch<Media>("/media/", { method: "POST", body: form });
     },
-    update: (id: number, altText: string) =>
+    update: (id: string, altText: string) =>
         apiFetch<Media>(`/media/${id}/`, { method: "PATCH", body: { alt_text: altText } }),
-    remove: (id: number) => apiFetch<void>(`/media/${id}/`, { method: "DELETE" }),
+    remove: (id: string) => apiFetch<void>(`/media/${id}/`, { method: "DELETE" }),
 };

@@ -148,7 +148,7 @@ export function ArticlesList() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="font-heading text-2xl font-bold sm:text-3xl">Articles</h1>
-                <Link href="/dashboard/articles/nouveau" className={buttonVariants()}>
+                <Link href="/dashboard/articles/creer" className={buttonVariants()}>
                     <Plus className="size-4" aria-hidden />
                     Nouvel article
                 </Link>
@@ -203,7 +203,7 @@ export function ArticlesList() {
                         {hasFilters ? "Aucun article ne correspond à votre recherche." : "Vous n’avez pas encore d’article."}
                     </p>
                     {!hasFilters && (
-                        <Link href="/dashboard/articles/nouveau" className={buttonVariants()}>
+                        <Link href="/dashboard/articles/creer" className={buttonVariants()}>
                             Écrire le premier article
                         </Link>
                     )}
@@ -228,7 +228,7 @@ export function ArticlesList() {
                                     <TableRow key={article.id}>
                                         <TableCell className="max-w-xs">
                                             <Link
-                                                href={`/dashboard/articles/${article.slug}`}
+                                                href={`/dashboard/articles/modifier/${article.slug}`}
                                                 className="block truncate font-medium hover:text-primary hover:underline"
                                             >
                                                 {article.title}
@@ -249,7 +249,7 @@ export function ArticlesList() {
                                                     <MoreHorizontal className="size-5" aria-hidden />
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-56">
-                                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/articles/${article.slug}`)}>
+                                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/articles/modifier/${article.slug}`)}>
                                                         <Pencil aria-hidden /> Modifier
                                                     </DropdownMenuItem>
                                                     {article.status === "PUBLISHED" && (

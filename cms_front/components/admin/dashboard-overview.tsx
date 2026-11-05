@@ -73,11 +73,11 @@ export function DashboardOverview() {
                     <p className="text-muted-foreground">Voici un aperçu de votre site.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Link href="/dashboard/articles/nouveau" className={buttonVariants()}>
+                    <Link href="/dashboard/articles/creer" className={buttonVariants()}>
                         <Plus className="size-4" aria-hidden />
                         Nouvel article
                     </Link>
-                    <Link href="/dashboard/pages/nouvelle" className={buttonVariants({ variant: "outline" })}>
+                    <Link href="/dashboard/pages/creer" className={buttonVariants({ variant: "outline" })}>
                         <Plus className="size-4" aria-hidden />
                         Nouvelle page
                     </Link>
@@ -123,7 +123,7 @@ export function DashboardOverview() {
                                     {data.latest_contents.map((item) => (
                                         <li key={`${item.type}-${item.id}`}>
                                             <Link
-                                                href={`/dashboard/${item.type === "article" ? "articles" : "pages"}/${item.slug}`}
+                                                href={`/dashboard/${item.type === "article" ? "articles" : "pages"}/modifier/${item.slug}`}
                                                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-3 hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                                             >
                                                 <div className="min-w-0">

@@ -28,7 +28,7 @@ export function useUploadMedia() {
 export function useUpdateMedia() {
     const invalidate = useInvalidate();
     return useMutation({
-        mutationFn: ({ id, altText }: { id: number; altText: string }) =>
+        mutationFn: ({ id, altText }: { id: string; altText: string }) =>
             mediaApi.update(id, altText),
         onSuccess: invalidate,
     });
@@ -37,7 +37,7 @@ export function useUpdateMedia() {
 export function useDeleteMedia() {
     const invalidate = useInvalidate();
     return useMutation({
-        mutationFn: (id: number) => mediaApi.remove(id),
+        mutationFn: (id: string) => mediaApi.remove(id),
         onSuccess: invalidate,
     });
 }

@@ -39,11 +39,17 @@ export class ApiError extends Error {
     data: unknown;
 
     constructor(status: number, data: unknown) {
+        const detail =
+            status === 409 &&
+                data &&
+                typeof data === "object" &&
+                typeof (data as { detail?: unknown }).detail === "string"
+                ? (data as { detail: string }).detail
+                : null;
         super(
+            detail ??
             DEFAULT_MESSAGES[status] ??
-            (status >= 500
-                ? "Erreur du serveur. Réessayez plus tard."
-                : "Une erreur est survenue."),
+            (status >= 500 ? "Erreur du serveur. Réessayez plus tard." : "Une erreur est survenue."),
         );
         this.name = "ApiError";
         this.status = status;

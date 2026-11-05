@@ -13,31 +13,31 @@ export interface Paginated<T> {
 export type ApiFieldErrors = Record<string, string[]>;
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   slug: string;
   description: string;
 }
 
 export interface Tag {
-  id: number;
+  id: string;
   name: string;
   slug: string;
 }
 
 export interface Media {
-  id: number;
+  id: string;
   file: string;
   filename: string;
   mime_type: string;
   size: number;
-  alt_text: string;
+  alt_text: string | null;
   uploaded_at: string;
-  uploaded_by: string;
+  uploaded_by: string | null;
 }
 
 export interface Article {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   body: string;
@@ -56,13 +56,13 @@ export interface ArticleInput {
   title: string;
   body: string;
   excerpt: string;
-  category_id: number | null;
-  cover_image_id: number | null;
-  tag_ids: number[];
+  category_id: string | null;
+  cover_image_id?: string | null;
+  tag_ids: string[];
 }
 
 export interface Page {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   body: string;
@@ -92,7 +92,7 @@ export interface TagInput {
 }
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   first_name: string;
@@ -126,7 +126,7 @@ export interface LoginResponse {
 
 export interface DashboardItem {
   type: "article" | "page";
-  id: number;
+  id: string;
   title: string;
   slug: string;
   status: ArticleStatus | PageStatus;

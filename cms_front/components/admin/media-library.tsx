@@ -36,7 +36,7 @@ function MediaEditForm({ media, onClose }: { media: Media; onClose: () => void }
     const update = useUpdateMedia();
     const [serverError, setServerError] = useState<string | null>(null);
     const { register, handleSubmit } = useForm<{ alt_text: string }>({
-        defaultValues: { alt_text: media.alt_text },
+        defaultValues: { alt_text: media.alt_text ?? ""},
     });
 
     async function submit(values: { alt_text: string }) {
@@ -62,8 +62,8 @@ function MediaEditForm({ media, onClose }: { media: Media; onClose: () => void }
             </DialogHeader>
 
             <img
-                src={media.file}
-                alt=""
+                src={mediaUrl(media.file)}
+                alt={media.alt_text ?? ""}
                 className="mx-auto max-h-64 w-auto rounded-lg border bg-muted object-contain"
             />
 
@@ -239,8 +239,8 @@ export function MediaLibrary() {
                                     className="block aspect-square w-full bg-muted focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
                                 >
                                     <img
-                                        src={media.file}
-                                        alt={media.alt_text}
+                                        src={mediaUrl(media.file)}
+                                        alt={media.alt_text ?? ""}
                                         loading="lazy"
                                         className="size-full object-cover"
                                     />
