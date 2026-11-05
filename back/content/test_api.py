@@ -68,3 +68,12 @@ def test_reserved_page_slug_refused(editor_client):
 def test_reserved_word_allowed_for_articles(editor_client):
     r = editor_client.post(ARTICLES, {"title": "Login", "body": "<p>x</p>"}, format="json")
     assert r.status_code == 201 and r.data["slug"] == "login"
+
+
+def test_category_and_tag_use_slug_in_urls(editor_client):
+    editor_client.post("/api/v1/categories/", {"name": "Bovins"}, format="json")
+    r = editor_client.patch("/api/v1/categories/bovins/", {"description": "x"}, format="json")
+    assert r.status_code == 200
+    assert editor_client.delete("/api/v1/categories/bovins/").status_code == 204
+    editor_client.post("/api/v1/tags/", {"name": "Zébu"}, format="json")
+    assert editor_client.delete("/api/v1/tags/zebu/").status_code == 204

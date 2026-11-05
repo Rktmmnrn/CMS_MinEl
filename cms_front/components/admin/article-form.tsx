@@ -189,7 +189,7 @@ export function ArticleForm({ article }: { article?: Article }) {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="overflow-visible">
                         <CardHeader>
                             <CardTitle className="font-heading text-base">Classement</CardTitle>
                         </CardHeader>
@@ -218,7 +218,7 @@ export function ArticleForm({ article }: { article?: Article }) {
                                 <FieldError id="category-error" message={errors.category_id?.message} />
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2 ">
                                 <Label>Étiquettes</Label>
                                 <Controller
                                     control={control}

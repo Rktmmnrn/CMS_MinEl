@@ -103,6 +103,7 @@ class CategoryViewSet(PublicReadEditorWriteMixin, SlugOnCreateMixin, viewsets.Mo
     serializer_class = CategorySerializer
     slug_max_length = 120
     pagination_class = None
+    lookup_field = "slug"
 
 
 class TagViewSet(PublicReadEditorWriteMixin, SlugOnCreateMixin, viewsets.ModelViewSet):
@@ -110,3 +111,4 @@ class TagViewSet(PublicReadEditorWriteMixin, SlugOnCreateMixin, viewsets.ModelVi
     serializer_class = TagSerializer
     slug_max_length = 60
     pagination_class = None
+    lookup_field = "slug"
