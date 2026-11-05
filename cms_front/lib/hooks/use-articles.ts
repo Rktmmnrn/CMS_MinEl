@@ -10,13 +10,6 @@ export function useArticles(filters: ArticleFilters) {
   });
 }
 
-export function useArticle(slug: string) {
-  return useQuery({
-    queryKey: ["articles", "detail", slug],
-    queryFn: () => articlesApi.get(slug),
-  });
-}
-
 function useInvalidate() {
   const qc = useQueryClient();
   return () => {
@@ -55,5 +48,14 @@ export function useDeleteArticle() {
   return useMutation({
     mutationFn: (slug: string) => articlesApi.remove(slug),
     onSuccess: invalidate,
+  });
+}
+
+export function useArticle(slug: string) {
+  return useQuery({
+    queryKey: ["articles", "detail", slug],
+    queryFn: () => articlesApi.get(slug),
+    staleTime: 0,
+    gcTime: 0,
   });
 }

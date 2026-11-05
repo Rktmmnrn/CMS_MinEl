@@ -27,7 +27,7 @@ import {
     useUploadMedia,
 } from "@/lib/hooks/use-media";
 import { cn } from "@/lib/utils";
-import { ALLOWED_IMAGE_TYPES, formatBytes, validateImage } from "@/lib/utils/media";
+import { ALLOWED_IMAGE_TYPES, formatBytes, validateImage, mediaUrl } from "@/lib/utils/media";
 import type { Media } from "@/types/api";
 
 /* ---------- Fenêtre ---------- */

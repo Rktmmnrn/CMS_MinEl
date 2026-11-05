@@ -24,8 +24,6 @@ import { ApiError, getErrorMessage } from "@/lib/api/client";
 import { categorySchema, type TaxonomyValues } from "@/lib/schemas/taxonomy";
 import { frenchFieldError } from "@/lib/i18n/errors";
 
-shema: typeof categorySchema;
-
 export interface TaxonomyItem {
     id: string;
     name: string;
@@ -54,6 +52,7 @@ interface Props {
     isPending: boolean;
     isError: boolean;
     error: unknown;
+    schema: typeof categorySchema;
     onRetry: () => void;
     onSave: (slug: string | null, values: TaxonomyValues) => Promise<unknown>;
     onDelete: (slug: string) => Promise<unknown>;
@@ -65,12 +64,14 @@ function TaxonomyForm({
     item,
     labels,
     withDescription,
+    schema,
     onSave,
     onClose,
 }: {
     item: TaxonomyItem | null;
     labels: TaxonomyLabels;
     withDescription: boolean;
+    schema: typeof categorySchema;
     onSave: Props["onSave"];
     onClose: () => void;
 }) {
@@ -81,7 +82,7 @@ function TaxonomyForm({
         setError,
         formState: { errors, isSubmitting },
     } = useForm<TaxonomyValues>({
-        resolver: zodResolver(taxonomySchema),
+        resolver: zodResolver(schema),
         defaultValues: { name: item?.name ?? "", description: item?.description ?? "" },
     });
 
@@ -96,7 +97,7 @@ function TaxonomyForm({
             if (error instanceof ApiError) {
                 for (const [field, messages] of Object.entries(error.fieldErrors)) {
                     if (field === "name" || field === "description") {
-                        setError(field, { message: messages[0] });
+                        setError(field, { message: frenchFieldError(field, messages) });
                         handled = true;
                     }
                 }
@@ -175,6 +176,7 @@ export function TaxonomyManager({
     isPending,
     isError,
     error,
+    schema,
     onRetry,
     onSave,
     onDelete,
@@ -288,6 +290,7 @@ export function TaxonomyManager({
                             withDescription={withDescription}
                             onSave={onSave}
                             onClose={() => setEditor(null)}
+                            schema={schema}
                         />
                     )}
                 </DialogContent>

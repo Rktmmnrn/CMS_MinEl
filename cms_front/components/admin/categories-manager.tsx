@@ -8,6 +8,7 @@ import {
     useDeleteCategory,
     useUpdateCategory,
 } from "@/lib/hooks/use-taxonomy";
+import { categorySchema } from "@/lib/schemas/taxonomy";
 
 export function CategoriesManager() {
     const query = useCategories();
@@ -35,6 +36,7 @@ export function CategoriesManager() {
             isPending={query.isPending}
             isError={query.isError}
             error={query.error}
+            schema={categorySchema}
             onRetry={() => query.refetch()}
             onSave={(slug, v) =>
                 slug

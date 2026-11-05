@@ -3,6 +3,7 @@
 import { Tags } from "lucide-react";
 import { TaxonomyManager } from "@/components/admin/taxonomy-manager";
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from "@/lib/hooks/use-taxonomy";
+import { tagSchema } from "@/lib/schemas/taxonomy";
 
 export function TagsManager() {
     const query = useTags();
@@ -29,6 +30,7 @@ export function TagsManager() {
             isPending={query.isPending}
             isError={query.isError}
             error={query.error}
+            schema={tagSchema}
             onRetry={() => query.refetch()}
             onSave={(slug, v) =>
                 slug ? update.mutateAsync({ slug, data: { name: v.name } }) : create.mutateAsync({ name: v.name })
