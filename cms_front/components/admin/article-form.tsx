@@ -6,25 +6,29 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, ExternalLink, Loader2, Save, Trash2 } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { CoverPicker } from "@/components/admin/cover-picker";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { TagPicker } from "@/components/admin/tag-picker";
 import { ApiError, getErrorMessage } from "@/lib/api/client";
+import { ACTIONS_BY_STATUS, type ActionDef } from "@/lib/article-actions";
 import { frenchFieldError } from "@/lib/i18n/errors";
 import { useCategories } from "@/lib/hooks/use-taxonomy";
-import { useCreateArticle, useUpdateArticle } from "@/lib/hooks/use-articles";
+import { useArticleAction, useUpdateArticle, useCreateArticle, useDeleteArticle } from "@/lib/hooks/use-articles";
 import { useUnsavedWarning } from "@/lib/hooks/use-unsaved-warning";
-import { articleSchema, type ArticleFormValues } from "@/lib/schemas/article";
+import { articleSchema, isBodyEmpty, type ArticleFormValues } from "@/lib/schemas/article";
 import { cn } from "@/lib/utils";
-import type { Article } from "@/types/api";
+import type { Article, Media } from "@/types/api";
 
-const FORM_FIELDS = ["title", "excerpt", "body", "category_id", "tag_ids"] as const;
+const FORM_FIELDS = ["title", "excerpt", "body", "category_id", "tag_ids", "cover_image_id"] as const;
+const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" });
 
 function FieldError({ id, message }: { id: string; message?: string }) {
     if (!message) return null;
@@ -39,15 +43,31 @@ function Counter({ length, max }: { length: number; max: number }) {
     );
 }
 
+function statusHelp(article: Article) {
+    if (article.status === "PUBLISHED") {
+        const date = article.published_at ? ` depuis le ${dateFormat.format(new Date(article.published_at))}` : "";
+        return `Cet article est visible sur le site${date}.`;
+    }
+    if (article.status === "ARCHIVED") return "Cet article est archivé : il n’est plus visible sur le site.";
+    return "Brouillon : seule l’équipe peut voir cet article.";
+}
+
 export function ArticleForm({ article }: { article?: Article }) {
     const router = useRouter();
     const categories = useCategories();
     const create = useCreateArticle();
     const update = useUpdateArticle(article?.slug ?? "");
+    const actionMutation = useArticleAction();
+    const remove = useDeleteArticle();
+
     const [serverError, setServerError] = useState<string | null>(null);
+    const [cover, setCover] = useState<Media | null>(article?.cover_image ?? null);
+    const [acting, setActing] = useState(false);
+    const [pendingDef, setPendingDef] = useState<ActionDef | null>(null);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
     const {
-        register, control, handleSubmit, reset, setError,
+        register, control, handleSubmit, reset, setError, clearErrors, getValues,
         formState: { errors, isDirty, isSubmitting },
     } = useForm<ArticleFormValues>({
         resolver: zodResolver(articleSchema),
@@ -57,15 +77,17 @@ export function ArticleForm({ article }: { article?: Article }) {
             body: article?.body ?? "",
             category_id: article?.category?.id ?? null,
             tag_ids: article?.tags.map((t) => t.id) ?? [],
+            cover_image_id: article?.cover_image?.id ?? null,
         },
     });
 
     const title = useWatch({ control, name: "title" });
     const excerpt = useWatch({ control, name: "excerpt" });
+    const busy = isSubmitting || acting;
 
-    useUnsavedWarning(isDirty && !isSubmitting);
+    useUnsavedWarning(isDirty && !busy);
 
-    async function onSubmit(values: ArticleFormValues) {
+    async function save(values: ArticleFormValues): Promise<boolean> {
         setServerError(null);
         try {
             if (article) {
@@ -78,6 +100,7 @@ export function ArticleForm({ article }: { article?: Article }) {
                 toast.success("Brouillon créé.");
                 router.replace(`/dashboard/articles/modifier/${created.slug}`);
             }
+            return true;
         } catch (error) {
             if (error instanceof ApiError && error.status === 400) {
                 let handled = false;
@@ -91,8 +114,62 @@ export function ArticleForm({ article }: { article?: Article }) {
             } else {
                 setServerError(getErrorMessage(error));
             }
+            return false;
         }
     }
+
+    async function onSubmit(values: ArticleFormValues) {
+        await save(values);
+    }
+
+    async function performAction(def: ActionDef) {
+        if (!article) return;
+        setActing(true);
+        try {
+            if (def.action === "publish") {
+                if (isBodyEmpty(getValues("body"))) {
+                    setError("body", { message: "Le contenu est obligatoire pour publier l’article." });
+                    toast.error("Ajoutez du contenu avant de publier.");
+                    return;
+                }
+                // Enregistrer d'abord
+                if (isDirty) {
+                    let saved = false;
+                    await handleSubmit(async (values) => {
+                        saved = await save(values);
+                    })();
+                    if (!saved) return;
+                }
+            }
+            await actionMutation.mutateAsync({ slug: article.slug, action: def.action });
+            toast.success(def.success);
+        } catch (e) {
+            toast.error(getErrorMessage(e));
+        } finally {
+            setActing(false);
+            setPendingDef(null);
+        }
+    }
+
+    function onAction(def: ActionDef) {
+        if (def.confirm) setPendingDef(def);
+        else void performAction(def);
+    }
+
+    async function confirmDelete() {
+        if (!article) return;
+        try {
+            await remove.mutateAsync(article.slug);
+            reset(getValues());
+            toast.success("Article supprimé.");
+            router.replace("/dashboard/articles");
+        } catch (e) {
+            toast.error(getErrorMessage(e));
+            setConfirmDeleteOpen(false);
+        }
+    }
+
+    const actions = article ? ACTIONS_BY_STATUS[article.status] : [];
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
@@ -145,7 +222,10 @@ export function ArticleForm({ article }: { article?: Article }) {
                             render={({ field, fieldState }) => (
                                 <RichTextEditor
                                     value={field.value}
-                                    onChange={field.onChange}
+                                    onChange={(html) => {
+                                        field.onChange(html);
+                                        if (errors.body) clearErrors("body");
+                                    }}
                                     onBlur={field.onBlur}
                                     invalid={!!fieldState.error}
                                 />
@@ -183,9 +263,85 @@ export function ArticleForm({ article }: { article?: Article }) {
                                 {isSubmitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Save className="size-4" aria-hidden />}
                                 {article ? "Enregistrer" : "Créer le brouillon"}
                             </Button>
-                            {article && isDirty && (
-                                <p className="text-xs text-warning">Modifications non enregistrées.</p>
+                            {article && isDirty && <p className="text-xs text-warning">Modifications non enregistrées.</p>}
+                            {!article && (
+                                <p className="text-xs text-muted-foreground">
+                                    Une fois le brouillon créé, vous pourrez le publier.
+                                </p>
                             )}
+                        </CardContent>
+                    </Card>
+
+                    {article && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-heading text-base">Publication</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <p className="text-sm text-muted-foreground">{statusHelp(article)}</p>
+                                {actions.map((def) => {
+                                    const isPublish = def.action === "publish";
+                                    const label = isPublish && isDirty ? `Enregistrer et ${def.label.toLowerCase()}` : def.label;
+                                    return (
+                                        <Button
+                                            key={def.action}
+                                            type="button"
+                                            variant={isPublish ? "default" : "outline"}
+                                            className="w-full"
+                                            disabled={busy}
+                                            onClick={() => onAction(def)}
+                                        >
+                                            {acting && isPublish ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <def.icon className="size-4" aria-hidden />}
+                                            {label}
+                                        </Button>
+                                    );
+                                })}
+                                {article.status === "PUBLISHED" && (
+                                    <a
+                                        href={`/articles/${article.slug}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={cn(buttonVariants({ variant: "ghost" }), "w-full")}
+                                    >
+                                        <ExternalLink className="size-4" aria-hidden />
+                                        Voir sur le site
+                                    </a>
+                                )}
+                                {article.status !== "PUBLISHED" && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="w-full text-destructive hover:text-destructive"
+                                        disabled={busy}
+                                        onClick={() => setConfirmDeleteOpen(true)}
+                                    >
+                                        <Trash2 className="size-4" aria-hidden />
+                                        Supprimer l’article
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="font-heading text-base">Image de couverture</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <Controller
+                                control={control}
+                                name="cover_image_id"
+                                render={({ field }) => (
+                                    <CoverPicker
+                                        media={cover}
+                                        onChange={(media) => {
+                                            setCover(media);
+                                            field.onChange(media?.id ?? null);
+                                        }}
+                                    />
+                                )}
+                            />
+                            <FieldError id="cover-error" message={errors.cover_image_id?.message} />
                         </CardContent>
                     </Card>
 
@@ -231,6 +387,27 @@ export function ArticleForm({ article }: { article?: Article }) {
                     </Card>
                 </aside>
             </div>
+
+            <ConfirmDialog
+                open={!!pendingDef}
+                onOpenChange={(open) => !open && setPendingDef(null)}
+                title={pendingDef ? `${pendingDef.label} cet article ?` : ""}
+                description={pendingDef?.confirm ?? ""}
+                confirmLabel={pendingDef?.label ?? ""}
+                loading={acting}
+                onConfirm={() => pendingDef && void performAction(pendingDef)}
+            />
+
+            <ConfirmDialog
+                open={confirmDeleteOpen}
+                onOpenChange={setConfirmDeleteOpen}
+                title="Supprimer cet article ?"
+                description="L’article sera supprimé définitivement. Cette action est irréversible."
+                confirmLabel="Supprimer"
+                destructive
+                loading={remove.isPending}
+                onConfirm={() => void confirmDelete()}
+            />
         </form>
     );
 }

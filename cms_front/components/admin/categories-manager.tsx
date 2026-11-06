@@ -38,6 +38,7 @@ export function CategoriesManager() {
             error={query.error}
             schema={categorySchema}
             onRetry={() => query.refetch()}
+            kind="category"
             onSave={(slug, v) =>
                 slug
                     ? update.mutateAsync({ slug, data: { name: v.name, description: v.description } })

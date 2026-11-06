@@ -10,6 +10,7 @@ export const articleSchema = z.object({
     body: z.string(),
     category_id: z.string().nullable(),
     tag_ids: z.array(z.string()),
+    cover_image_id: z.string().nullable(),
 });
 
 export type ArticleFormValues = z.infer<typeof articleSchema>;

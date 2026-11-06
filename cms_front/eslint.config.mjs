@@ -7,7 +7,11 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Disable the rule for the media-library component, which uses <img> elements.
   {
-    files: ["components/admin/media-library.tsx"],
+    files: [
+      "components/admin/media-library.tsx",
+      "components/admin/media-picker.tsx",
+      "components/admin/cover-picker.tsx",
+    ],
     rules: { "@next/next/no-img-element": "off" },
   },
   // Override default ignores of eslint-config-next.

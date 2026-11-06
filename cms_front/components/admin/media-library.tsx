@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ALLOWED_IMAGE_TYPES, formatBytes, validateImage, mediaUrl } from "@/lib/utils/media";
 import type { Media } from "@/types/api";
+import { frenchFieldError } from "@/lib/i18n/errors";
 
 /* ---------- Fenêtre ---------- */
 
@@ -36,7 +37,7 @@ function MediaEditForm({ media, onClose }: { media: Media; onClose: () => void }
     const update = useUpdateMedia();
     const [serverError, setServerError] = useState<string | null>(null);
     const { register, handleSubmit } = useForm<{ alt_text: string }>({
-        defaultValues: { alt_text: media.alt_text ?? ""},
+        defaultValues: { alt_text: media.alt_text ?? "" },
     });
 
     async function submit(values: { alt_text: string }) {
@@ -46,8 +47,8 @@ function MediaEditForm({ media, onClose }: { media: Media; onClose: () => void }
             toast.success("Texte alternatif enregistré.");
             onClose();
         } catch (error) {
-            const fieldMessage = error instanceof ApiError ? error.fieldErrors.alt_text?.[0] : null;
-            setServerError(fieldMessage ?? getErrorMessage(error));
+            const fieldErrors = error instanceof ApiError ? error.fieldErrors.alt_text : undefined;
+            setServerError(fieldErrors ? frenchFieldError("alt_text", fieldErrors) : getErrorMessage(error));
         }
     }
 
@@ -131,8 +132,11 @@ export function MediaLibrary() {
                 await upload.mutateAsync(file);
                 sent += 1;
             } catch (e) {
-                const detail = e instanceof ApiError ? e.fieldErrors.file?.[0] : null;
-                toast.error(`${file.name} : ${detail ?? getErrorMessage(e)}`);
+                const message =
+                    e instanceof ApiError && e.fieldErrors.file
+                        ? frenchFieldError("file", e.fieldErrors.file)
+                        : getErrorMessage(e);
+                toast.error(`${file.name} : ${message}`);
             }
         }
         setUploading(false);

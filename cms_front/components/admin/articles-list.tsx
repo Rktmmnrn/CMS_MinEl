@@ -5,16 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-    Archive,
-    ArchiveRestore,
     Eye,
-    EyeOff,
     FileText,
     MoreHorizontal,
     Pencil,
     Plus,
     Search,
-    Send,
     Trash2,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -32,10 +28,11 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { Pagination } from "@/components/admin/pagination";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { getErrorMessage } from "@/lib/api/client";
-import type { ArticleAction } from "@/lib/api/articles";
 import { useArticleAction, useArticles, useDeleteArticle } from "@/lib/hooks/use-articles";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import type { Article, ArticleStatus } from "@/types/api";
+import { ACTIONS_BY_STATUS, type ActionDef } from "@/lib/article-actions";
+import { isBodyEmpty } from "@/lib/schemas/article";
 
 const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
 
@@ -45,40 +42,6 @@ const STATUS_TABS: { value: ArticleStatus | ""; label: string }[] = [
     { value: "PUBLISHED", label: "Publiés" },
     { value: "ARCHIVED", label: "Archivés" },
 ];
-
-interface ActionDef {
-    action: ArticleAction;
-    label: string;
-    icon: typeof Send;
-    success: string;
-    confirm?: string;
-}
-
-const ACTIONS_BY_STATUS: Record<ArticleStatus, ActionDef[]> = {
-    DRAFT: [
-        { action: "publish", label: "Publier", icon: Send, success: "Article publié." },
-    ],
-    PUBLISHED: [
-        {
-            action: "unpublish",
-            label: "Dépublier",
-            icon: EyeOff,
-            success: "Article repassé en brouillon.",
-            confirm: "L’article ne sera plus visible sur le site public.",
-        },
-        {
-            action: "archive",
-            label: "Archiver",
-            icon: Archive,
-            success: "Article archivé.",
-            confirm: "L’article ne sera plus visible sur le site public.",
-        },
-    ],
-    ARCHIVED: [
-        { action: "publish", label: "Republier", icon: Send, success: "Article publié." },
-        { action: "restore", label: "Restaurer en brouillon", icon: ArchiveRestore, success: "Article restauré en brouillon." },
-    ],
-};
 
 export function ArticlesList() {
     const router = useRouter();
@@ -102,7 +65,7 @@ export function ArticlesList() {
         router.replace(qs ? `${pathname}?${qs}` : pathname);
     }
 
-    // La recherche (après délai) met à jour l'URL et revient à la page 1
+    // Recherche
     useEffect(() => {
         if (debouncedSearch !== urlSearch) {
             updateParams({ search: debouncedSearch, page: null });
@@ -123,6 +86,11 @@ export function ArticlesList() {
     const [toDelete, setToDelete] = useState<Article | null>(null);
 
     function runAction(article: Article, def: ActionDef) {
+        if (def.action === "publish" && isBodyEmpty(article.body)) {
+            toast.error("Cet article n’a pas de contenu : ouvrez-le pour le rédiger avant de le publier.");
+            setPending(null);
+            return;
+        }
         actionMutation.mutate(
             { slug: article.slug, action: def.action },
             {

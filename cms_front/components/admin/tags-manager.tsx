@@ -31,6 +31,7 @@ export function TagsManager() {
             isError={query.isError}
             error={query.error}
             schema={tagSchema}
+            kind="tag"
             onRetry={() => query.refetch()}
             onSave={(slug, v) =>
                 slug ? update.mutateAsync({ slug, data: { name: v.name } }) : create.mutateAsync({ name: v.name })

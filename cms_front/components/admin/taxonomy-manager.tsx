@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ApiError, getErrorMessage } from "@/lib/api/client";
 import { categorySchema, type TaxonomyValues } from "@/lib/schemas/taxonomy";
+import { useArticleCount } from "@/lib/hooks/use-article-count";
 import { frenchFieldError } from "@/lib/i18n/errors";
 
 export interface TaxonomyItem {
@@ -52,6 +53,7 @@ interface Props {
     isPending: boolean;
     isError: boolean;
     error: unknown;
+    kind: "category" | "tag";
     schema: typeof categorySchema;
     onRetry: () => void;
     onSave: (slug: string | null, values: TaxonomyValues) => Promise<unknown>;
@@ -176,6 +178,7 @@ export function TaxonomyManager({
     isPending,
     isError,
     error,
+    kind,
     schema,
     onRetry,
     onSave,
@@ -184,6 +187,24 @@ export function TaxonomyManager({
     const [editor, setEditor] = useState<{ item: TaxonomyItem | null } | null>(null);
     const [toDelete, setToDelete] = useState<TaxonomyItem | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const usage = useArticleCount(kind, toDelete?.slug ?? null);
+
+    function deleteDescription() {
+        if (!toDelete) return "";
+        const base = `« ${toDelete.name} » sera supprimé(e).`;
+        if (usage.isPending) return `${base} Vérification des articles concernés…`;
+        if (usage.isError) return `${base} ${labels.deleteHint}`;
+        const n = usage.data;
+        if (n === 0) return `${base} Aucun article ne l’utilise.`;
+        if (kind === "category") {
+            return n === 1
+                ? `${base} 1 article utilise cette catégorie. Il sera conservé, sans catégorie.`
+                : `${base} ${n} articles utilisent cette catégorie. Ils seront conservés, sans catégorie.`;
+        }
+        return n === 1
+            ? `${base} 1 article utilise cette étiquette. Elle lui sera retirée, l’article est conservé.`
+            : `${base} ${n} articles utilisent cette étiquette. Elle leur sera retirée, les articles sont conservés.`;
+    }
 
     async function confirmDelete() {
         if (!toDelete) return;
@@ -300,7 +321,7 @@ export function TaxonomyManager({
                 open={!!toDelete}
                 onOpenChange={(open) => !open && setToDelete(null)}
                 title={labels.deleteTitle}
-                description={toDelete ? `« ${toDelete.name} » sera supprimé(e). ${labels.deleteHint}` : ""}
+                description={deleteDescription()}
                 confirmLabel="Supprimer"
                 destructive
                 loading={deleting}
