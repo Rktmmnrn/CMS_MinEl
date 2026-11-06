@@ -287,7 +287,7 @@ export function MediaLibrary() {
                 title="Supprimer cette image ?"
                 description={
                     toDelete
-                        ? `« ${toDelete.filename} » sera supprimée définitivement. Si un article l’utilise comme image de couverture, il faudra en choisir une autre.`
+                        ? `« ${toDelete.filename} » sera supprimée définitivement. Si un article l’utilise (couverture ou dans le texte), l'image disparaîtra de cet article.`
                         : ""
                 }
                 confirmLabel="Supprimer"

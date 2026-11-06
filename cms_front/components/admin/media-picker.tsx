@@ -149,17 +149,19 @@ export function MediaPicker({
     onOpenChange,
     selectedId,
     onSelect,
+    title = "Choisir l'image de couverture",
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     selectedId: string | null;
     onSelect: (media: Media) => void;
+    title?: string;
 }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>Choisir l’image de couverture</DialogTitle>
+                    <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>Images de la médiathèque.</DialogDescription>
                 </DialogHeader>
                 {open && (

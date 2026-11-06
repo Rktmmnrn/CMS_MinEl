@@ -5,7 +5,7 @@ import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/r
 import StarterKit from "@tiptap/starter-kit";
 import {
     Bold, Code, Heading2, Heading3, Heading4, Italic, Link2, List, ListOrdered,
-    Minus, Quote, Redo2, Strikethrough, Underline, Undo2, Unlink,
+    Minus, Quote, Redo2, Strikethrough, Underline, Undo2, Unlink, ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,9 @@ import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import Image from "@tiptap/extension-image";
+import { MediaPicker } from "@/components/admin/media-picker";
+import { mediaUrl } from "@/lib/utils/media";
 
 function ToolButton({
     label, active = false, disabled = false, onClick, children,
@@ -102,6 +105,7 @@ function LinkDialog({ editor, open, onClose }: { editor: Editor; open: boolean; 
 
 function Toolbar({ editor }: { editor: Editor | null }) {
     const [linkOpen, setLinkOpen] = useState(false);
+    const [imageOpen, setImageOpen] = useState(false);
     const s = useEditorState({
         editor,
         selector: ({ editor }) => ({
@@ -145,10 +149,26 @@ function Toolbar({ editor }: { editor: Editor | null }) {
             {s.link && (
                 <ToolButton label="Retirer le lien" onClick={() => run().extendMarkRange("link").unsetLink().run()}><Unlink className="size-4" aria-hidden /></ToolButton>
             )}
+            <ToolButton label="Insérer une image" onClick={() => setImageOpen(true)}>
+                <ImagePlus className="size-4" aria-hidden />
+            </ToolButton>
             <span className="mx-1 w-px bg-border" aria-hidden />
             <ToolButton label="Annuler" disabled={!s.canUndo} onClick={() => run().undo().run()}><Undo2 className="size-4" aria-hidden /></ToolButton>
             <ToolButton label="Rétablir" disabled={!s.canRedo} onClick={() => run().redo().run()}><Redo2 className="size-4" aria-hidden /></ToolButton>
             {linkOpen && <LinkDialog editor={editor} open onClose={() => setLinkOpen(false)} />}
+            <MediaPicker
+                open={imageOpen}
+                onOpenChange={setImageOpen}
+                selectedId={null}
+                title="Insérer une image dans le texte"
+                onSelect={(media) =>
+                    editor
+                        .chain()
+                        .focus()
+                        .setImage({ src: mediaUrl(media.file), alt: media.alt_text ?? "" })
+                        .run()
+                }
+            />
         </div>
     );
 }
@@ -165,6 +185,7 @@ export function RichTextEditor({
                 heading: { levels: [2, 3, 4] }, // le serveur n'acceptera que h2 à h4
                 link: { openOnClick: false, autolink: false, HTMLAttributes: { target: null, rel: "noopener noreferrer" } },
             }),
+            Image.configure({ inline: false, allowBase64: false }),
         ],
         content: value,
         editorProps: {
