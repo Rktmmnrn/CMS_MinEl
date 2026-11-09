@@ -11,6 +11,15 @@ const FIELD_MESSAGES: Record<string, string> = {
     file: "Ce fichier n’est pas accepté.",
     position: "La position n’est pas valide (nombre entier, 0 ou plus).",
     show_in_menu: "Le choix d’affichage dans le menu n’est pas valide.",
+    username: "Ce nom d’utilisateur n’est pas valide ou est déjà pris.",
+    email: "Cette adresse e-mail n’est pas valide ou est déjà utilisée.",
+    first_name: "Le prénom n’est pas valide.",
+    last_name: "Le nom n’est pas valide.",
+    role: "Le rôle choisi n’est pas valide.",
+    is_active: "Le statut du compte n’est pas valide.",
+    password: "Mot de passe refusé : choisissez-en un plus long, moins courant, qui ne soit pas uniquement des chiffres.",
+    new_password: "Mot de passe refusé : choisissez-en un plus long, moins courant, qui ne soit pas uniquement des chiffres.",
+    old_password: "Le mot de passe actuel est incorrect.",
 };
 
 export function frenchFieldError(field: string, messages: string[]): string {
