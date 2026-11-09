@@ -77,3 +77,10 @@ def test_category_and_tag_use_slug_in_urls(editor_client):
     assert editor_client.delete("/api/v1/categories/bovins/").status_code == 204
     editor_client.post("/api/v1/tags/", {"name": "Zébu"}, format="json")
     assert editor_client.delete("/api/v1/tags/zebu/").status_code == 204
+
+
+def test_relative_img_src_and_alt_are_kept(editor_client):
+    html = '<p><img src="/mediafiles/uploads/a.png" alt="Zébu"></p>'
+    r = editor_client.post(ARTICLES, {"title": "Img", "body": html}, format="json")
+    assert 'src="/mediafiles/uploads/a.png"' in r.data["body"]
+    assert 'alt="Zébu"' in r.data["body"]
