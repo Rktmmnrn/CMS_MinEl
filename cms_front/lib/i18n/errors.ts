@@ -9,6 +9,8 @@ const FIELD_MESSAGES: Record<string, string> = {
     cover_image_id: "L’image de couverture n’est pas valide.",
     alt_text: "Le texte alternatif n’est pas valide.",
     file: "Ce fichier n’est pas accepté.",
+    position: "La position n’est pas valide (nombre entier, 0 ou plus).",
+    show_in_menu: "Le choix d’affichage dans le menu n’est pas valide.",
 };
 
 export function frenchFieldError(field: string, messages: string[]): string {

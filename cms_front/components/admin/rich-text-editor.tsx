@@ -174,9 +174,9 @@ function Toolbar({ editor }: { editor: Editor | null }) {
 }
 
 export function RichTextEditor({
-    value, onChange, onBlur, invalid = false,
+    value, onChange, onBlur, invalid = false, label= "Contenu de l’article",
 }: {
-    value: string; onChange: (html: string) => void; onBlur?: () => void; invalid?: boolean;
+    value: string; onChange: (html: string) => void; onBlur?: () => void; invalid?: boolean; label?: string;
 }) {
     const editor = useEditor({
         immediatelyRender: false,
@@ -192,7 +192,7 @@ export function RichTextEditor({
             attributes: {
                 role: "textbox",
                 "aria-multiline": "true",
-                "aria-label": "Contenu de l’article",
+                "aria-label": label,
                 class: "rich-content min-h-72 px-4 py-3 focus:outline-none",
             },
         },
