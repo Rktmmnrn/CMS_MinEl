@@ -3,8 +3,10 @@ import { z } from "zod";
 const password = z.string().min(8, "8 caractères minimum.");
 
 export const userCreateSchema = z.object({
-    username: z.string().trim().min(1, "Le nom d’utilisateur est obligatoire."),
-    email: z.string().trim().min(1, "L’adresse e-mail est obligatoire.").email("Adresse e-mail invalide."),
+    username: z.string().trim().min(1, "Le nom d’utilisateur est obligatoire.")
+        .max(150, "150 caractères maximum.")
+        .regex(/^[\w.@+-]+$/, "Lettres, chiffres et @ . + - _ uniquement."),
+    email: z.string().trim().min(1, "L’adresse e-mail est obligatoire.").email("Adresse e-mail invalide.").transform((v) => v.toLowerCase()),
     first_name: z.string().trim(),
     last_name: z.string().trim(),
     role: z.enum(["ADMIN", "EDITOR"]),
