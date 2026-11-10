@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
       "components/admin/media-library.tsx",
       "components/admin/media-picker.tsx",
       "components/admin/cover-picker.tsx",
+      "components/public/**/*.tsx",
     ],
     rules: { "@next/next/no-img-element": "off" },
   },
