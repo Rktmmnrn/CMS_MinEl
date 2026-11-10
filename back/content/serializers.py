@@ -52,7 +52,22 @@ class ArticleSerializer(serializers.ModelSerializer):
 
 
 class PageSerializer(serializers.ModelSerializer):
+    parent_id = serializers.PrimaryKeyRelatedField(
+        source="parent", queryset=Page.objects.all(),
+        pk_field=serializers.UUIDField(), required=False, allow_null=True)
     author = serializers.CharField(source="author.username", read_only=True)
+
+    def validate_parent_id(self, value):
+        if value is None:
+            return value
+        if self.instance and value.pk == self.instance.pk:
+            raise serializers.ValidationError("Une page ne peut pas être son propre parent.")
+        if value.parent_id is not None:
+            raise serializers.ValidationError("Ce parent est déjà une sous-page (2 niveaux maximum).")
+        if self.instance and self.instance.children.exists():
+            raise serializers.ValidationError(
+                "Cette page a des sous-pages : elle ne peut pas devenir une sous-page.")
+        return value
 
     def validate_body(self, value):
         return clean_html(value)
@@ -60,7 +75,7 @@ class PageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         fields = ["id", "title", "slug", "body", "status", "show_in_menu",
-                  "position", "author", "created_at", "updated_at", "published_at"]
+                  "position", "parent_id", "author", "created_at", "updated_at", "published_at"]
         read_only_fields = ["slug", "status", "published_at"]
 
     def validate_title(self, value):

@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 
 from accounts.models import Role
 from accounts.permissions import IsEditorOrAdmin
+from cms_back.pagination import FlexiblePagination
 
 from .filters import ArticleFilter
 from .models import Article, Category, ContentStatus, Page, Tag
@@ -90,12 +92,20 @@ class ArticleViewSet(ContentViewSet):
 
 
 class PageViewSet(ContentViewSet):
-    queryset = Page.objects.select_related("author")
+    queryset = Page.objects.select_related("author", "parent")
     serializer_class = PageSerializer
     staff_order = "position"
     public_order = "position"
     filterset_fields = ["show_in_menu", "status"]
     search_fields = ["title", "body"]
+    pagination_class = FlexiblePagination
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action == "list" and not is_staff_user(self.request.user):
+            # un enfant n'est visible que si son parent est publié
+            qs = qs.filter(Q(parent__isnull=True) | Q(parent__status=ContentStatus.PUBLISHED))
+        return qs
 
 
 class CategoryViewSet(PublicReadEditorWriteMixin, SlugOnCreateMixin, viewsets.ModelViewSet):

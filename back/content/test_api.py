@@ -84,3 +84,41 @@ def test_relative_img_src_and_alt_are_kept(editor_client):
     r = editor_client.post(ARTICLES, {"title": "Img", "body": html}, format="json")
     assert 'src="/mediafiles/uploads/a.png"' in r.data["body"]
     assert 'alt="Zébu"' in r.data["body"]
+
+
+PAGES = "/api/v1/pages/"
+
+
+def test_page_parent_rules(editor_client):
+    a = editor_client.post(PAGES, {"title": "A propos", "body": "<p>x</p>"}, format="json").data
+    b = editor_client.post(
+        PAGES, {"title": "Equipe", "body": "<p>x</p>", "parent_id": a["id"]}, format="json")
+    assert b.status_code == 201 and b.data["parent_id"] == a["id"]
+    c = editor_client.post(
+        PAGES, {"title": "Sous", "body": "<p>x</p>", "parent_id": b.data["id"]}, format="json")
+    assert c.status_code == 400 and "parent_id" in c.data
+    r = editor_client.patch(PAGES + "a-propos/", {"parent_id": a["id"]}, format="json")
+    assert r.status_code == 400
+    d = editor_client.post(PAGES, {"title": "Autre", "body": "<p>x</p>"}, format="json").data
+    r = editor_client.patch(PAGES + "a-propos/", {"parent_id": d["id"]}, format="json")
+    assert r.status_code == 400  # a des sous-pages : ne peut pas devenir enfant
+
+
+def test_deleting_parent_makes_children_top_level(editor_client):
+    a = editor_client.post(PAGES, {"title": "A propos", "body": "<p>x</p>"}, format="json").data
+    editor_client.post(
+        PAGES, {"title": "Equipe", "body": "<p>x</p>", "parent_id": a["id"]}, format="json")
+    assert editor_client.delete(PAGES + "a-propos/").status_code == 204
+    assert editor_client.get(PAGES + "equipe/").data["parent_id"] is None
+
+
+def test_public_menu_hides_child_of_unpublished_parent(api, editor_client):
+    p = editor_client.post(
+        PAGES, {"title": "Parent", "body": "<p>x</p>", "show_in_menu": True}, format="json").data
+    editor_client.post(
+        PAGES, {"title": "Enfant", "body": "<p>x</p>", "show_in_menu": True,
+                "parent_id": p["id"]}, format="json")
+    editor_client.post(PAGES + "enfant/publish/")
+    assert api.get(PAGES + "?show_in_menu=true").data["count"] == 0
+    editor_client.post(PAGES + "parent/publish/")
+    assert api.get(PAGES + "?show_in_menu=true").data["count"] == 2
