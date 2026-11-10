@@ -123,6 +123,9 @@ class Page(Content):
     )
     show_in_menu = models.BooleanField(default=False)
     position = models.IntegerField(default=0)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="children"
+    )
 
     class Meta:
         ordering = ["position"]
