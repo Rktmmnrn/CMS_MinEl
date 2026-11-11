@@ -60,3 +60,10 @@ export function useDeletePage() {
         onSuccess: invalidate,
     });
 }
+
+export function usePageOptions() {
+    return useQuery({
+        queryKey: ["pages", "options"],
+        queryFn: () => pagesApi.list({ page_size: 50 }),
+    });
+}

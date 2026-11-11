@@ -2,6 +2,7 @@ import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
 import type { NavLink } from "@/components/public/main-nav";
 import { getMenuPages } from "@/lib/public-api";
+import { buildMenu } from "@/lib/menu";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export default async function PublicLayout({ children }: { children: React.React
     const links: NavLink[] = [
         { href: "/", label: "Accueil" },
         { href: "/articles", label: "Articles" },
-        ...pages.map((p) => ({ href: `/${p.slug}`, label: p.title })),
+        ...buildMenu(pages),
     ];
 
     return (

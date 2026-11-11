@@ -8,6 +8,7 @@ export const pageSchema = z.object({
         .max(200, "Le titre ne peut pas dépasser 200 caractères."),
     body: z.string(),
     show_in_menu: z.boolean(),
+    parent_id: z.string().nullable(),
     position: z
         .string()
         .trim()

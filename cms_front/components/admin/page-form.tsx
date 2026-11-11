@@ -22,6 +22,7 @@ import {
     useDeletePage,
     usePageAction,
     useUpdatePage,
+    usePageOptions,
 } from "@/lib/hooks/use-pages";
 import { useUnsavedWarning } from "@/lib/hooks/use-unsaved-warning";
 import { isBodyEmpty } from "@/lib/schemas/article";
@@ -29,7 +30,7 @@ import { pageSchema, type PageFormValues } from "@/lib/schemas/page";
 import { cn } from "@/lib/utils";
 import type { Page } from "@/types/api";
 
-const FORM_FIELDS = ["title", "body", "show_in_menu", "position"] as const;
+const FORM_FIELDS = ["title", "body", "show_in_menu", "position", "parent_id"] as const;
 const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" });
 
 function FieldError({ id, message }: { id: string; message?: string }) {
@@ -51,6 +52,10 @@ export function PageForm({ page }: { page?: Page }) {
     const update = useUpdatePage(page?.slug ?? "");
     const actionMutation = usePageAction();
     const remove = useDeletePage();
+    const options = usePageOptions();
+    const allPages = options.data?.results ?? [];
+    const hasChildren = page ? allPages.some((p) => p.parent_id === page.id) : false;
+    const candidates = allPages.filter((p) => p.parent_id === null && p.id !== page?.id);
 
     const [serverError, setServerError] = useState<string | null>(null);
     const [acting, setActing] = useState(false);
@@ -67,6 +72,7 @@ export function PageForm({ page }: { page?: Page }) {
             body: page?.body ?? "",
             show_in_menu: page?.show_in_menu ?? false,
             position: String(page?.position ?? 0),
+            parent_id: page?.parent_id ?? null,
         },
     });
 
@@ -81,6 +87,7 @@ export function PageForm({ page }: { page?: Page }) {
             body: values.body,
             show_in_menu: values.show_in_menu,
             position: Number(values.position),
+            parent_id: values.parent_id,
         };
         try {
             if (page) {
@@ -313,6 +320,36 @@ export function PageForm({ page }: { page?: Page }) {
                                 </div>
                             </div>
                             <FieldError id="menu-error" message={errors.show_in_menu?.message} />
+
+                            <div className="space-y-2">
+                                <Label htmlFor="parent">Page parente (sous-menu)</Label>
+                                <Controller
+                                    control={control}
+                                    name="parent_id"
+                                    render={({ field }) => (
+                                        <select
+                                            id="parent"
+                                            value={field.value ?? ""}
+                                            onChange={(e) => field.onChange(e.target.value || null)}
+                                            onBlur={field.onBlur}
+                                            disabled={options.isPending || hasChildren}
+                                            aria-describedby="parent-help parent-error"
+                                            className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
+                                        >
+                                            <option value="">Aucune (page de premier niveau)</option>
+                                            {candidates.map((p) => (
+                                                <option key={p.id} value={p.id}>{p.title}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                />
+                                <p id="parent-help" className="text-xs text-muted-foreground">
+                                    {hasChildren
+                                        ? "Cette page a des sous-pages : elle ne peut pas devenir elle-même une sous-page."
+                                        : "La page apparaîtra dans le sous-menu de la page parente (2 niveaux maximum). La position s’ordonne à l’intérieur d’un même parent."}
+                                </p>
+                                <FieldError id="parent-error" message={errors.parent_id?.message} />
+                            </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="position">Position dans le menu</Label>

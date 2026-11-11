@@ -6,6 +6,7 @@ export interface PageFilters {
     search?: string;
     status?: PageStatus | "";
     show_in_menu?: boolean;
+    page_size?: number;
 }
 
 export type PageAction = "publish" | "unpublish";

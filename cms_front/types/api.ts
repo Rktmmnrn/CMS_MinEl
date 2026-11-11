@@ -68,6 +68,7 @@ export interface Page {
   body: string;
   status: PageStatus;
   show_in_menu: boolean;
+  parent_id: string | null;
   position: number;
   author: string;
   created_at: string;
@@ -80,6 +81,7 @@ export interface PageInput {
   body: string;
   show_in_menu: boolean;
   position: number;
+  parent_id: string | null;
 }
 
 export interface CategoryInput {

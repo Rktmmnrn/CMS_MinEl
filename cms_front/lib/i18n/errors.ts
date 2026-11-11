@@ -10,6 +10,7 @@ const FIELD_MESSAGES: Record<string, string> = {
     alt_text: "Le texte alternatif n’est pas valide.",
     file: "Ce fichier n’est pas accepté.",
     position: "La position n’est pas valide (nombre entier, 0 ou plus).",
+    parent_id: "Cette page ne peut pas être placée sous la page choisie (2 niveaux maximum).",
     show_in_menu: "Le choix d’affichage dans le menu n’est pas valide.",
     username: "Ce nom d’utilisateur n’est pas valide ou est déjà pris.",
     email: "Cette adresse e-mail n’est pas valide ou est déjà utilisée.",

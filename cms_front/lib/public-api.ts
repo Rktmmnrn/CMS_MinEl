@@ -50,17 +50,8 @@ export async function getTags(): Promise<Tag[]> {
 
 export async function getMenuPages(): Promise<Page[]> {
     try {
-        const byId = new Map<string, Page>();
-        for (let page = 1; page <= 5; page++) {
-            const data = await get<Paginated<Page>>("/pages/", { show_in_menu: true, page });
-            if (!data) break;
-            data.results.forEach((p) => byId.set(p.id, p));
-            if (!data.next) break;
-        }
-        // Position, puis titre : stabiliter de l'ordre
-        return [...byId.values()].sort(
-            (a, b) => a.position - b.position || a.title.localeCompare(b.title, "fr"),
-        );
+        const data = await get<Paginated<Page>>("/pages/", { show_in_menu: true, page_size: 50 });
+        return data?.results ?? [];
     } catch {
         return [];
     }
