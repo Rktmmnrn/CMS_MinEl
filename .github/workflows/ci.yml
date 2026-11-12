@@ -119,12 +119,12 @@ jobs:
 
       - name: Lint (eslint)
         run: npm run lint
+        
+      - name: Build (Next.js)
+        run: npm run build
 
       - name: Typecheck (tsc)
         run: npm run typecheck
-
-      - name: Build (Next.js)
-        run: npm run build
 
   build-frontend:
     needs: frontend
