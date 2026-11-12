@@ -53,6 +53,17 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    def save(self, *args, **kwargs):
+        email = self.email.lower()
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            update_fields = tuple(update_fields)
+            if email != self.email and "email" not in update_fields:
+                update_fields += ("email",)
+            kwargs["update_fields"] = update_fields
+        self.email = email
+        return super().save(*args, **kwargs)
+
     def is_admin(self):
         return self.role.name == Role.Name.ADMIN
 

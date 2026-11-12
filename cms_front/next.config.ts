@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
 
   skipTrailingSlashRedirect: true,
   async rewrites() {
+    if (process.env.NODE_ENV !== "development") return [];
     return [
       { source: "/api/:path*", destination: `${backend}/api/:path*/` },
       { source: "/admin/:path*", destination: `${backend}/admin/:path*` },

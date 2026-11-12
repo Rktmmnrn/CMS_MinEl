@@ -22,6 +22,13 @@ def test_inactive_account_refused(api, editor_user):
     assert api.post(LOGIN, CREDS, format="json").status_code == 401
 
 
+def test_email_is_stored_in_lowercase(editor_user):
+    editor_user.email = "Editor@Example.ORG"
+    editor_user.save()
+    editor_user.refresh_from_db()
+    assert editor_user.email == "editor@example.org"
+
+
 def test_refresh_then_logout_blacklists(api, editor_user):
     api.post(LOGIN, CREDS, format="json")
     access = api.post("/api/v1/auth/refresh/").data["access"]
