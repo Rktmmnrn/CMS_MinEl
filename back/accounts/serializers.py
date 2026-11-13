@@ -1,5 +1,6 @@
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import Role, User
@@ -7,12 +8,14 @@ from .models import Role, User
 
 class CMSTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
+
     def get_token(cls, user):
         token = super().get_token(user)
         token["role"] = user.role.name  # pour l'affichage dans NextJS
         return token
 
     def validate(self, attrs):
+        attrs[self.username_field] = attrs[self.username_field].lower()
         data = super().validate(attrs)
         data["role"] = self.user.role.name
         return data
@@ -45,6 +48,9 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 class UserAdminSerializer(serializers.ModelSerializer):
     role = serializers.SlugRelatedField(slug_field="name", queryset=Role.objects.all())
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all(), lookup="iexact",
+                                    message="Un compte avec cet e-mail existe déjà.")])
 
     class Meta:
         model = User

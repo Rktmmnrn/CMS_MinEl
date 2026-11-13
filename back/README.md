@@ -1,173 +1,232 @@
-# Backend — API CMS
+# Backend : API du CMS du ministère de l'élevage
 
-## Présentation
+API REST qui gère les contenus (articles, pages, catégories, étiquettes, médias), les utilisateurs et leurs rôles. Elle est consommée par le frontend Next.js (`cms_front/`) et sert aussi un point de contrôle de santé utilisé par la CI/CD.
 
-Le backend fournit l’API du CMS : authentification et gestion des comptes, du contenu et des médias.
-Il expose des routes REST versionnées sous `/api/v1/`, avec lecture publique des contenus publiés et
-écriture réservée aux éditeurs et administrateurs. L’application est construite avec Django et
-Django REST Framework, des jetons JWT (Simple JWT), PostgreSQL et `nh3` pour nettoyer le HTML.
+**Stack** : Python 3.13, Django, Django REST Framework, JWT (`djangorestframework-simplejwt`), PostgreSQL 16, `django-filter`, `django-cors-headers`, Pillow, `nh3` (nettoyage HTML), gunicorn. Tests avec `pytest` + `pytest-django`, lint avec `ruff`.
+
+Architecture globale, pipeline CI/CD et déploiement : voir le [README racine](../README.md).
 
 ## Prérequis et installation
 
-### Docker (voie principale)
+### Avec Docker (voie principale)
 
-Prérequis : Docker et Docker Compose. Depuis la racine du dépôt :
+Prérequis : Docker et Docker Compose, un fichier `.env` à la racine du dépôt (`cp .env.example .env`, puis renseigner les valeurs).
 
 ```bash
-cp .env.example .env
-# Définir POSTGRES_PASSWORD et DJANGO_SECRET_KEY dans .env avant le démarrage.
-docker compose up --build -d
+docker compose up -d --build        # depuis la racine du dépôt
+docker compose exec backend python manage.py createsuperuser
+curl http://localhost:8080/api/v1/health/
 ```
 
-Le backend et PostgreSQL démarrent avec Nginx, qui publie l’API sur
-`http://localhost:8080/api/v1/`. Le conteneur backend applique les migrations et collecte les
-fichiers statiques au démarrage. `docker compose logs -f backend` permet de suivre son démarrage.
+Au démarrage, le conteneur exécute `entrypoint.sh` : `migrate`, `createcachetable`, `collectstatic`, puis gunicorn (3 workers). Le backend n'est pas exposé directement : tout passe par Nginx (`localhost:8080` en développement).
 
-### Installation locale sans Docker
+### En local, sans Docker pour Django
 
-Il faut Python 3.13, PostgreSQL 16 accessible localement et une base dont les identifiants
-correspondent à `.env`. Depuis la racine, copiez `.env.example` vers `.env`, renseignez les secrets,
-puis utilisez `DB_HOST=localhost` (Compose remplace cette valeur par `db` dans le conteneur).
+Prérequis : Python 3.13 et un PostgreSQL accessible (le plus simple : le service `db` de Docker Compose).
 
 ```bash
+docker compose up -d db                       # depuis la racine
+python3 -m venv venv && source venv/bin/activate
+pip install -r back/requirements.txt
 cd back
-python3.13 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 python manage.py migrate
-python manage.py runserver
+python manage.py createcachetable             # obligatoire : le throttling du login utilise cette table
+python manage.py createsuperuser
+python manage.py runserver                    # http://localhost:8000
 ```
 
-L’API de développement est alors disponible sur `http://localhost:8000/api/v1/`. Configurez aussi
-`DJANGO_ALLOWED_HOSTS` et les origines CORS/CSRF si l’interface tourne sur une autre adresse.
+Le `venv/` est à la racine du dépôt (ignoré par Git). Le fichier `.env` est lu depuis la racine, pas depuis `back/`.
 
-## Variables d’environnement
+## Variables d'environnement
 
-Les valeurs vides ci-dessous sont intentionnelles : les deux secrets doivent être fournis
-localement et ne doivent jamais être ajoutés au dépôt.
+Lues par `cms_back/settings.py` depuis le `.env` de la racine. Ne jamais commiter `.env` ; seul `.env.example` (sans valeurs réelles) est versionné.
 
-| Variable | Rôle | Exemple non secret |
+| Variable | Rôle | Exemple |
 |---|---|---|
-| `POSTGRES_DB` | Nom de la base PostgreSQL | `cms` |
-| `POSTGRES_USER` | Utilisateur PostgreSQL | `cms_user` |
-| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | À définir dans `.env` |
-| `DB_HOST` | Hôte PostgreSQL ; Compose le remplace par le service `db` | `db` (Docker), `localhost` (local) |
-| `DB_PORT` | Port PostgreSQL | `5432` |
-| `DJANGO_SECRET_KEY` | Clé secrète Django | À générer localement, jamais à publier |
-| `DJANGO_DEBUG` | Active le mode debug Django (`True` ou `False`) | `True` en développement |
-| `DJANGO_ALLOWED_HOSTS` | Hôtes HTTP acceptés, séparés par des virgules | `localhost,127.0.0.1` |
-| `CORS_ALLOWED_ORIGINS` | Origines autorisées pour CORS, séparées par des virgules | `http://localhost:3000` |
-| `CSRF_TRUSTED_ORIGINS` | Origines de confiance CSRF, séparées par des virgules | Vide en local si non nécessaire |
+| `DJANGO_SECRET_KEY` | Clé de signature (Django et JWT). Obligatoire. | `<clé aléatoire longue>` |
+| `DJANGO_DEBUG` | `True` en dev. Toute autre valeur (ou l'absence) = `False`. | `True` |
+| `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés, séparés par des virgules | `localhost,127.0.0.1` |
+| `POSTGRES_DB` | Nom de la base | `cms` |
+| `POSTGRES_USER` | Utilisateur PostgreSQL | `cms` |
+| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | `<mot de passe>` |
+| `DB_HOST` | Hôte de la base (`localhost` en local ; Docker Compose le remplace par `db`) | `localhost` |
+| `DB_PORT` | Port de la base (`5433` si le 5432 est pris) | `5432` |
+| `CORS_ALLOWED_ORIGINS` | Origines du frontend autorisées (facultatif, défaut `http://localhost:3000`) | `https://cms.example.org` |
+| `CSRF_TRUSTED_ORIGINS` | Origines de confiance pour CSRF (facultatif, utile en production) | `https://cms.example.org` |
+| `BACKEND_TAG` | Lue par `docker-compose.prod.yml` seulement (pas par Django) : tag de l'image (défaut `latest`) | `sha-a570402` |
 
-En production, désactivez le debug, restreignez les hôtes/origines aux domaines déployés et configurez
-les deux secrets hors du dépôt.
+Les variables `POSTGRES_*` ne sont prises en compte qu'à la **première création du volume** `pgdata`. Pour les changer : `docker compose down -v`, puis relancer (efface les données).
 
 ## Commandes courantes
 
-Depuis la racine du dépôt, en Docker :
+À lancer depuis `back/`, avec le `venv` activé.
 
 ```bash
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py createsuperuser
-docker compose exec backend pytest
-docker compose exec backend ruff check .
-docker compose exec backend python manage.py collectstatic --noinput
+python manage.py makemigrations          # après une modification de modèle ; commiter les fichiers créés
+python manage.py makemigrations --check --dry-run   # contrôle utilisé en CI
+python manage.py migrate
+python manage.py createcachetable
+python manage.py createsuperuser         # reçoit automatiquement le rôle ADMIN
+python manage.py collectstatic --noinput
+pytest -q                                # nécessite PostgreSQL démarré
+ruff check .                             # ruff check . --fix pour les corrections simples
 ```
 
-En installation locale, exécutez les mêmes commandes `python manage.py ...` dans `back/`; pour les
-tests et le lint, utilisez `pytest` et `ruff check .`.
+Dans le conteneur : `docker compose exec backend python manage.py <commande>`.
+
+Les rôles `ADMIN` et `EDITOR` sont créés par la migration de données `accounts/0002_seed_roles.py`. Les migrations sont versionnées sur Git : ne jamais les supprimer.
 
 ## Structure du code
 
-```text
+```
 back/
-├── cms_back/   # configuration Django, routes racine, pagination, ASGI/WSGI
-├── accounts/   # utilisateurs, rôles, permissions et authentification JWT
-├── content/    # articles, pages, catégories, tags, filtres et nettoyage HTML
-├── media/      # téléversement, métadonnées et gestion des fichiers médias
-├── dashboard/  # indicateurs du tableau de bord et vérification de santé
-├── manage.py   # commandes d’administration Django
-└── requirements.txt
+├── cms_back/        # configuration : settings.py, urls.py, pagination.py (page_size)
+├── accounts/        # Role, User (connexion par e-mail), permissions, authentification JWT, gestion des utilisateurs
+├── content/         # Article, Page, Category, Tag : modèles, filtres, nettoyage HTML (sanitize.py), slugs (utils.py)
+├── media/           # Media : envoi, validation et suppression des images
+├── dashboard/       # statistiques du tableau de bord et health check (sans modèle)
+├── conftest.py      # fixtures pytest (clients API, utilisateurs, cache)
+├── pytest.ini, ruff.toml, requirements.txt
+├── Dockerfile       # image Python 3.13-slim, utilisateur non-root, gunicorn
+└── entrypoint.sh    # migrate + createcachetable + collectstatic au démarrage
 ```
 
-## Contrat de l’API
+Les tests sont à côté du code qu'ils couvrent : `accounts/test_*.py`, `content/test_api.py`, `media/test_api.py`.
 
-Les routes sont préfixées par `/api/v1`. Les rôles sont : **visiteur** (non authentifié),
-**éditeur** (gestion de contenu et médias) et **admin** (droits éditeur et gestion des utilisateurs).
-Les visiteurs ne voient que les articles et pages publiés ; les éditeurs et admins peuvent aussi
-consulter les brouillons et contenus archivés.
+## Contrat de l'API
 
-| Route | Accès et opérations | Filtres / recherche | Pagination |
-|---|---|---|---|
-| `/health/` | Public, `GET` ; vérifie la connexion à la base | — | Non |
-| `/auth/login/`, `/auth/refresh/`, `/auth/logout/` | Connexion publique, renouvellement par cookie, déconnexion authentifiée | — | Non |
-| `/auth/me/`, `/auth/password/change/` | Utilisateur authentifié : `GET`/`PATCH` son profil, `POST` pour changer son mot de passe | — | Non |
-| `/dashboard/` | Éditeur/admin, `GET` | — | Non |
-| `/articles/` et `/articles/{slug}/` | `GET` public ; `POST`, `PUT`/`PATCH`, `DELETE` éditeur/admin ; actions `publish`, `unpublish`, `archive`, `restore` par `POST` | `category`, `tag`, `status`; `search` dans titre, extrait et corps | 10 par défaut, fixe |
-| `/pages/` et `/pages/{slug}/` | `GET` public ; écriture et actions `publish`/`unpublish` éditeur/admin | `show_in_menu`, `status`; `search` dans titre et corps | 10 par défaut, `page_size` configurable, maximum 50 |
-| `/categories/` et `/categories/{slug}/` | `GET` public ; CRUD éditeur/admin | — | Non |
-| `/tags/` et `/tags/{slug}/` | `GET` public ; CRUD éditeur/admin | — | Non |
-| `/media/` et `/media/{uuid}/` | Éditeur/admin : `GET`, `POST`, `PATCH` (métadonnées), `DELETE` | — | 10 par défaut, `page_size` configurable, maximum 50 |
-| `/users/` et `/users/{uuid}/` | Admin seulement : `GET`, `POST`, `PATCH` ; désactiver avec `is_active=false` (pas de suppression) | — | 10 par défaut, fixe |
+Préfixe : `/api/v1/`. Tout est protégé par défaut (`IsAuthenticated`) ; les routes publiques le déclarent explicitement.
 
-Les routes de détail des **articles, pages, catégories et tags utilisent un slug** ; celles des
-**médias et utilisateurs utilisent un UUID**. L’UUID demeure aussi présent comme champ `id` dans les
-objets de contenu.
+**Rôles** : *Visiteur* (sans jeton) = lecture des contenus `PUBLISHED` ; *Éditeur* (`EDITOR`) = tous les contenus, tous statuts, médias, tableau de bord ; *Administrateur* (`ADMIN`) = Éditeur + utilisateurs et nombre d'utilisateurs du tableau de bord. Le rôle est relu en base à chaque requête.
 
-Les listes paginées suivent le format DRF `count`, `next`, `previous`, `results`. `page_size` n’est
-accepté que pour les pages et les médias ; les catégories et tags ne sont pas paginés. Les filtres
-non listés dans le tableau ne sont pas disponibles.
+### Routes
 
-Les erreurs de validation DRF renvoient généralement `400` avec un objet par champ (ou `detail`) ;
-une authentification absente/invalide renvoie `401`, un rôle insuffisant `403`, une ressource absente
-`404`. Une transition de statut impossible renvoie `409` avec `{"detail": ...}` ; supprimer un
-article publié renvoie également `409`.
+**Règle d'identifiant** : articles, pages, catégories et étiquettes → **slug** ; médias et utilisateurs → **UUID**.
 
-### Statuts et pages
+| Ressource | Routes | Accès |
+|---|---|---|
+| Articles | `GET /articles/`, `GET /articles/{slug}/` | Public (`PUBLISHED` seulement ; un brouillon donne 404) |
+| | `POST /articles/`, `PATCH`, `DELETE /articles/{slug}/` | Éditeur / Admin |
+| | `POST /articles/{slug}/publish/`, `unpublish/`, `archive/`, `restore/` | Éditeur / Admin |
+| Pages | `GET /pages/`, `GET /pages/{slug}/` | Public (`PUBLISHED` seulement) |
+| | `POST /pages/`, `PATCH`, `DELETE /pages/{slug}/` | Éditeur / Admin |
+| | `POST /pages/{slug}/publish/`, `unpublish/` | Éditeur / Admin |
+| Catégories, étiquettes | `GET /categories/`, `/tags/` (+ `/{slug}/`) | Public |
+| | `POST`, `PATCH`, `DELETE` | Éditeur / Admin |
+| Médias | `GET`, `POST /media/`, `GET`, `PATCH`, `DELETE /media/{uuid}/` | Éditeur / Admin |
+| Utilisateurs | `GET`, `POST /users/`, `GET`, `PATCH /users/{uuid}/` (pas de DELETE) | Admin |
+| Tableau de bord | `GET /dashboard/` | Éditeur / Admin (`users` réservé à l'Admin) |
+| Santé | `GET /health/` | Public : 200 `{"status":"ok","database":"up"}` ou 503 si la base est injoignable |
+| Authentification | voir section suivante | |
 
-- **Articles** : `DRAFT` → `PUBLISHED` avec `publish`; `PUBLISHED` → `DRAFT` avec `unpublish` ou
-  `ARCHIVED` avec `archive`; `ARCHIVED` → `PUBLISHED` avec `publish` ou `DRAFT` avec `restore`.
-- **Pages** : `DRAFT` ↔ `PUBLISHED` par `publish` et `unpublish`; les pages ne sont pas archivables.
-- L’API génère le slug à la création. Les slugs de pages réservés sont `login`, `dashboard`,
-  `articles`, `admin`, `api`, `static`, `mediafiles`, `_next`, `favicon.ico`, `robots.txt` et
-  `sitemap.xml`.
-- `parent_id` accepte un UUID ou `null`. Une page ne peut avoir qu’un niveau de sous-pages
-  (deux niveaux au total) ; une page ayant déjà des enfants ne peut pas devenir elle-même une
-  sous-page.
+**Champs en écriture** : article `title`, `body`, `excerpt`, `category_id`, `cover_image_id`, `tag_ids` ; page `title`, `body`, `show_in_menu`, `position`, `parent_id` ; catégorie `name`, `description` ; étiquette `name` ; média `file` (multipart) et `alt_text` ; utilisateur `username`, `email`, `first_name`, `last_name`, `role` (`"ADMIN"` ou `"EDITOR"`), `is_active`, `password`. `slug`, `status` et `published_at` sont en lecture seule. Pour retirer une catégorie, une image de couverture ou les étiquettes : `PATCH` avec `category_id: null`, `cover_image_id: null`, `tag_ids: []` ; un champ absent n'est pas modifié.
+
+**Slugs** : générés à la création à partir du titre (ou du nom), uniques (suffixe `-2`, `-3`...), **jamais modifiés ensuite**. Utiliser toujours le slug renvoyé par l'API.
+
+**Slugs réservés (pages)** : à la création d'une page, un titre dont le slug serait `login`, `dashboard`, `articles`, `admin`, `api`, `static`, `mediafiles`, `_next`, `favicon.ico`, `robots.txt` ou `sitemap.xml` est refusé : `400 {"title": ["..."]}`. Seuls les sept premiers peuvent réellement se produire. Le contrôle ne s'applique pas aux articles ni aux renommages.
+
+### Cycle de vie des statuts
+
+| Action | Depuis | Vers |
+|---|---|---|
+| `publish` | `DRAFT`, `ARCHIVED` | `PUBLISHED` |
+| `unpublish` | `PUBLISHED` | `DRAFT` |
+| `archive` (articles) | `PUBLISHED` | `ARCHIVED` |
+| `restore` (articles) | `ARCHIVED` | `DRAFT` |
+
+- Une transition impossible renvoie **409** `{"detail": "..."}` (message en français).
+- Le statut ne change **que** par ces actions : un `PATCH` contenant `status` est ignoré.
+- Un article `PUBLISHED` ne peut pas être supprimé (409) ; une page publiée peut l'être (204).
+- Les pages n'ont que `DRAFT` et `PUBLISHED`. `published_at` est fixé à la première publication seulement.
+
+### Pages hiérarchiques (`parent_id`)
+
+- `parent_id` (UUID d'une page ou `null`) est présent en lecture et en écriture.
+- **2 niveaux maximum**. `400 {"parent_id": [...]}` si la page est son propre parent, si le parent est déjà une sous-page, ou si la page a elle-même des sous-pages.
+- Supprimer un parent : ses enfants passent à `parent_id: null` (204).
+- Dans `GET /pages/` côté public, un enfant dont le parent n'est pas publié est exclu. Le détail `GET /pages/{slug}/` reste accessible.
+- `position` s'applique à l'intérieur d'un même parent ; deux pages peuvent avoir la même position (ordre alors indéterminé). Les URL restent plates (pas de `/parent/enfant`).
+
+### Filtres, tri et pagination
+
+| Ressource | Filtres | Tri |
+|---|---|---|
+| Articles | `?search=` (titre, extrait, texte), `?category=<slug>`, `?tag=<slug>`, `?status=` ; tous combinables (ET) | Public : date de publication décroissante. Éditeurs : date de création décroissante |
+| Pages | `?search=`, `?show_in_menu=true`, `?status=` | `position` croissante |
+| Utilisateurs | aucun | e-mail croissant |
+
+La recherche ignore la casse mais **pas les accents**. `category` et `tag` n'acceptent qu'une seule valeur.
+
+Pagination (articles, pages, médias, utilisateurs) : `?page=N`, 10 par page, réponse `{count, next, previous, results}`. `?page_size=` n'existe que sur **`/pages/` et `/media/`** (maximum 50). Catégories et étiquettes ne sont **pas paginées** (tableau simple). Menu complet : `GET /pages/?show_in_menu=true&page_size=50`.
+
+### Erreurs
+
+| Code | Signification | Corps |
+|---|---|---|
+| 400 | Validation | `{"champ": ["message"]}` |
+| 401 | Non authentifié, jeton expiré ou compte désactivé | `{"detail": "..."}` |
+| 403 | Rôle insuffisant | `{"detail": "..."}` |
+| 404 | Introuvable (ou contenu non publié pour un visiteur) | `{"detail": "..."}` |
+| 409 | Transition de statut impossible, suppression refusée | `{"detail": "..."}` |
+| 429 | Trop de tentatives de connexion | `{"detail": "..."}` |
+| 503 | Base injoignable (`/health/`) | `{"status": "error", "database": "down"}` |
+
+Les messages de validation (400) suivent `LANGUAGE_CODE` (défaut du projet : `en-us`, donc en anglais) ; les `detail` des 409 sont déjà en français.
 
 ## Authentification
 
-Le login renvoie un jeton d’accès valable **15 minutes** et place le jeton de renouvellement
-(valable **7 jours**, rotation activée) dans le cookie HTTP-only `refresh_token`. Le cookie est
-limité à `Path=/api/v1/auth/`, avec `SameSite=Lax`; `Secure` est désactivé en debug et activé hors
-debug (HTTPS requis en production). Le refresh token ne figure pas dans le JSON du login.
-L’endpoint de login est limité à **5 requêtes par minute** ; le dépassement renvoie `429`.
+| Route | Détail |
+|---|---|
+| `POST /auth/login/` | `{email, password}` → 200 `{access, role}` + cookie `refresh_token`. Même 401 pour e-mail inconnu, mauvais mot de passe ou compte désactivé. |
+| `POST /auth/refresh/` | Sans corps, cookie envoyé (`credentials: "include"`) → 200 `{access}` et nouveau cookie (rotation). 401 si le refresh est invalide, expiré ou sur liste noire. |
+| `POST /auth/logout/` | Bearer requis. Met le refresh sur liste noire, supprime le cookie. 204. |
+| `GET /auth/me/` | Profil de l'utilisateur connecté. |
+| `PATCH /auth/me/` | Modifie `first_name` et `last_name` uniquement ; `email`, `role` et le reste sont ignorés. Renvoie le profil complet. |
+| `POST /auth/password/change/` | `{old_password, new_password}` → 200, ou 400 (validateurs). |
 
-## Sécurité et médias
+- **Access token** : 15 minutes, à garder en mémoire côté client (jamais `localStorage`).
+- **Refresh token** : 7 jours, **uniquement dans un cookie** (jamais dans le JSON) : nom `refresh_token`, `HttpOnly`, `SameSite=Lax`, `Path=/api/v1/auth/`, `Secure` quand `DJANGO_DEBUG` ≠ `True`. Rotation à chaque refresh, ancien jeton sur liste noire.
+- Le rôle est copié dans le jeton (affichage côté frontend), mais l'API relit toujours le rôle en base. Un compte `is_active=False` voit son access token refusé immédiatement.
+- **Throttle du login** : 5 requêtes par minute et par adresse IP (toutes les tentatives comptent), puis **429**. Les compteurs sont dans un cache partagé en base (`DatabaseCache`, table `django_cache`), pour que les 3 workers gunicorn comptent ensemble. `NUM_PROXIES = 1` permet à DRF de lire l'IP réelle derrière Nginx.
 
-- Le corps HTML des articles et pages est nettoyé par `nh3` à l’écriture via l’API. Les balises
-  admises sont `p`, `br`, `hr`, `strong`, `em`, `u`, `s`, `code`, `pre`, `blockquote`, `h2`, `h3`,
-  `h4`, `ul`, `ol`, `li`, `a`, `img`, `table`, `thead`, `tbody`, `tr`, `th` et `td`. Les attributs
-  admis sont `href`/`title` sur `a` et `src`/`alt`/`width`/`height` sur `img`; les schémas URL
-  acceptés sont `http`, `https` et `mailto`.
-- Les mots de passe utilisent les validateurs Django : similarité avec les attributs du compte,
-  longueur minimale (8 caractères par défaut), liste des mots de passe courants et rejet des mots
-  de passe entièrement numériques.
-- Les adresses e-mail enregistrées sont normalisées en minuscules.
-- Les médias acceptent les images JPEG, PNG, GIF et WebP jusqu’à **5 Mo**. Les fichiers sont
-  enregistrés dans `/app/mediafiles/uploads/AAAA/MM/` dans le conteneur et servis sous
-  `/mediafiles/`.
-- Le backend s’exécute en utilisateur **non-root**. Le volume monté sur `/app/mediafiles` doit être
-  inscriptible par cet utilisateur (notamment si vous utilisez un bind mount sur l’hôte) ; sinon les
-  téléversements échouent.
+## Sécurité
+
+- **Nettoyage HTML (`nh3`)** : le champ `body` des articles et des pages est nettoyé **à l'écriture** (liste blanche) ; l'API renvoie donc toujours du HTML sûr, affichable tel quel.
+  - Balises acceptées : `p`, `br`, `hr`, `strong`, `em`, `u`, `s`, `code`, `pre`, `blockquote`, `h2`, `h3`, `h4`, `ul`, `ol`, `li`, `a`, `img`, `table`, `thead`, `tbody`, `tr`, `th`, `td`.
+  - Attributs : `a` → `href`, `title` ; `img` → `src`, `alt`, `width`, `height`. Tout le reste (`style`, `class`, `target`...) est supprimé.
+  - Schémas d'URL absolues : `http`, `https`, `mailto`. Les URL relatives (`/mediafiles/...`) passent. `javascript:` et `data:` sont bloqués. Les liens reçoivent `rel="noopener noreferrer"`.
+- **Mots de passe** : hachage Django (PBKDF2) et validateurs actifs : 8 caractères minimum, pas trop proche des données de l'utilisateur, pas dans la liste des mots de passe courants, pas entièrement numérique. À la création d'un compte par l'Admin, la comparaison avec les données de l'utilisateur n'est pas faite.
+- **E-mail** : l'unicité et le login sont **sensibles à la casse** (`A@x.org` ≠ `a@x.org`). Le client doit envoyer l'e-mail **en minuscules**, à la création comme au login ; le serveur ne normalise que la partie domaine.
+- **Comptes** : jamais supprimés, désactivés (`is_active`) ; `on_delete=PROTECT` sur les auteurs et les rôles.
+- **Production** : en `DJANGO_DEBUG=False`, l'API ne répond qu'en JSON (pas de page navigable DRF) et `SECURE_PROXY_SSL_HEADER` fait confiance à `X-Forwarded-Proto` envoyé par Nginx.
+
+## Médias
+
+- **Types acceptés** : `image/jpeg`, `image/png`, `image/gif`, `image/webp`, 5 Mo maximum (`400` sinon). Pillow vérifie que le fichier est une vraie image. Nginx accepte jusqu'à 6 Mo (`client_max_body_size`).
+- **Stockage** : `MEDIA_ROOT = back/mediafiles/` (dans le conteneur : `/app/mediafiles`, volume Docker `media`), sous-dossiers `uploads/AAAA/MM/`. Servi par Nginx sous `/mediafiles/` (par Django seulement en `DEBUG`). Ce dossier n'est jamais versionné.
+- **`PATCH`** : seul `alt_text` est modifiable (pas de remplacement du fichier). **`DELETE`** : supprime la ligne **et** le fichier sur le disque ; les articles qui l'utilisaient comme couverture passent à `cover_image: null`.
+- **Champ `file`** : URL absolue. Derrière Nginx en développement, le port peut manquer dans l'hôte : utiliser uniquement le **chemin** (`/mediafiles/...`) sur l'origine du site.
+- **Droits du volume (non-root)** : l'application tourne sous l'utilisateur `appuser`. Un volume nommé n'hérite des droits de l'image qu'à sa **création**. S'il a été créé avec les droits `root`, l'envoi d'une image échoue (`PermissionError: ... '/app/mediafiles/uploads'`, erreur 500). Correction sans perte de données :
+
+  ```bash
+  docker compose exec -u root backend chown -R appuser:appuser /app/mediafiles /app/staticfiles
+  ```
+
+  Un volume neuf (premier déploiement) n'a pas ce problème.
 
 ## Limites connues et pistes
 
-- L’admin Django écrit le contenu sans passer par le sérialiseur API et donc sans le nettoyage `nh3`.
-- Les refresh tokens ne sont pas invalidés lors d’un changement de mot de passe ou de la
-  désactivation d’un compte.
-- Rien n’empêche un Admin de se rétrograder lui-même ni de désactiver le dernier Admin.
-- `tel:` est retiré des liens par la liste des schémas autorisés de `nh3`.
-- L’extrait d’article n’a pas de limite de taille applicative.
-- Les noms d’étiquettes en doublon ne font pas encore l’objet d’une erreur de validation API
-  dédiée ; la contrainte d’unicité en base peut produire une réponse non maîtrisée.
+| Limite | Piste |
+|---|---|
+| L'admin Django (`/admin/`) contourne `nh3` : un texte saisi là n'est pas nettoyé | Nettoyer dans `Content.save()` |
+| Pas d'invalidation des refresh tokens au changement de mot de passe ni à la désactivation (un refresh volé reste valable jusqu'à 7 jours). Le refresh d'un compte désactivé n'est pas couvert par un test | Mettre les jetons en liste noire à ces moments ; ajouter le test |
+| Un Admin peut se rétrograder, se désactiver, ou laisser le système sans Admin | Refuser ces cas côté serveur (400) |
+| Le `role` dans le jeton peut rester ancien jusqu'au renouvellement complet de la session | Lire `GET /auth/me/` pour l'affichage |
+| Les liens `tel:` sont supprimés | Ajouter `tel` aux schémas dans `content/sanitize.py` |
+| Pas de limite serveur sur l'extrait (`excerpt`) ; limite de 300 recommandée côté interface | Ajouter `max_length=300` |
+| Aucun contrôle sur la publication d'un texte vide (`<p></p>` accepté) | Refuser `publish` si le texte est vide |
+| Doublons d'étiquettes ou de catégories : seul le nom identique à la casse près est refusé (« Zébu » et « zebu » coexistent) | Comparer les slugs à la validation |
+| Édition simultanée : le dernier enregistrement gagne | Contrôle sur `updated_at` (409) |
+| `/users/` sans recherche ni filtre ; `page_size` absent sur articles et utilisateurs | À ajouter si nécessaire |
+| Une `<img>` insérée dans un texte reste cassée si le média est supprimé | Avertir l'éditeur, ou lier les médias aux contenus |
+| Une seule instance du backend (le `migrate` au démarrage n'est pas sûr en parallèle ; cache de throttle en base) | Passer à Redis et à une étape de migration dédiée si l'on monte en charge |

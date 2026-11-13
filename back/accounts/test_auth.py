@@ -32,9 +32,11 @@ def test_email_is_stored_in_lowercase(editor_user):
 def test_refresh_then_logout_blacklists(api, editor_user):
     api.post(LOGIN, CREDS, format="json")
     access = api.post("/api/v1/auth/refresh/").data["access"]
+    old_refresh = api.cookies["refresh_token"].value
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
     assert api.post("/api/v1/auth/logout/").status_code == 204
     api.credentials()
+    api.cookies["refresh_token"] = old_refresh
     assert api.post("/api/v1/auth/refresh/").status_code == 401
 
 
@@ -42,3 +44,8 @@ def test_login_is_throttled_after_5_attempts(api, editor_user):
     bad = {**CREDS, "password": "faux"}
     codes = [api.post(LOGIN, bad, format="json").status_code for _ in range(6)]
     assert codes == [401, 401, 401, 401, 401, 429]
+
+
+def test_login_ignores_email_case(api, editor_user):
+    r = api.post(LOGIN, {**CREDS, "email": "Editor@Test.ORG"}, format="json")
+    assert r.status_code == 200

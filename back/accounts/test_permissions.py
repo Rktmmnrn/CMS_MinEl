@@ -21,3 +21,12 @@ def test_patch_me_updates_names_only(editor_client):
         "/api/v1/auth/me/", {"first_name": "Ana", "role": "ADMIN"}, format="json")
     assert r.status_code == 200
     assert r.data["first_name"] == "Ana" and r.data["role"] == "EDITOR"
+
+
+def test_duplicate_email_other_case_returns_400(admin_client, editor_user):
+    r = admin_client.post(
+        "/api/v1/users/",
+        {"username": "dup", "email": "EDITOR@test.org",
+         "password": "Str0ng-Passw0rd!", "role": "EDITOR"},
+        format="json")
+    assert r.status_code == 400 and "email" in r.data
