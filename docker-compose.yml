@@ -28,10 +28,16 @@ services:
       - static:/app/staticfiles
       - media:/app/mediafiles
 
+  frontend:
+    build: ./cms_front
+    environment:
+      API_INTERNAL_URL: http://nginx
+    expose: ["3000"]
+    depends_on: [backend]
+
   nginx:
     image: nginx:1.27-alpine
-    depends_on:
-      - backend
+    depends_on: [backend, frontend]
     ports:
       - "8080:80"
     volumes:
