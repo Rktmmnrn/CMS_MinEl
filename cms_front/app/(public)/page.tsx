@@ -16,7 +16,6 @@ export default async function HomePage() {
                     style={{ backgroundImage: "radial-gradient(circle at 88% 0%, rgba(242,168,29,0.55), transparent 55%)" }}
                 />
                 <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-                    <p className="text-sm font-semibold uppercase tracking-widest text-sun">MINEL</p>
                     <h1 className="mt-2 max-w-2xl font-heading text-3xl font-bold sm:text-5xl">
                         Ministère de l’Élevage
                     </h1>
